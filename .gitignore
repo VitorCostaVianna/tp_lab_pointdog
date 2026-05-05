@@ -2,3 +2,5 @@
 docs/
 contexto/
 *.md
+
+backend/node_modules/

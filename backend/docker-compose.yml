@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: file:./dev.db
+      JWT_SECRET: troque_por_um_secret_forte
+      JWT_EXPIRES_IN: 24h
+      PORT: 3000
+    volumes:
+      - ./prisma:/app/prisma
