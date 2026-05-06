@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pets                 Pet[]
+  servicesOffered      Service[]
+  clientAppointments   Appointment[] @relation("ClientAppointments")
+  providerAppointments Appointment[] @relation("ProviderAppointments")
+}
+
+model Pet {
+  id      String  @id @default(uuid())
+  name    String
+  breed   String
+  size    String
+  notes   String?
+  ownerId String
+
+  owner        User          @relation(fields: [ownerId], references: [id])
+  appointments Appointment[]
+}
+
+model Service {
+  id              String @id @default(uuid())
+  name            String
+  description     String
+  price           Float
+  durationMinutes Int
+  providerId      String
+
+  provider     User          @relation(fields: [providerId], references: [id])
+  appointments Appointment[]
+}
+
+model Appointment {
+  id          String   @id @default(uuid())
+  scheduledAt DateTime
+  status      String   @default("PENDENTE")
+  notes       String?
+  clientId    String
+  petId       String
+  providerId  String
+  serviceId   String
+
+  client   User    @relation("ClientAppointments",  fields: [clientId],   references: [id])
+  pet      Pet     @relation(fields: [petId],       references: [id])
+  provider User    @relation("ProviderAppointments", fields: [providerId], references: [id])
+  service  Service @relation(fields: [serviceId],   references: [id])
+}
