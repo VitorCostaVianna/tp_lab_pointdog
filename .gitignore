@@ -4,3 +4,11 @@ contexto/
 *.md
 
 backend/node_modules/
+.claude/
+
+.worktrees
+
+.claude/
+.claudeignore
+.claude/*
+!.claude/settings.local.json
