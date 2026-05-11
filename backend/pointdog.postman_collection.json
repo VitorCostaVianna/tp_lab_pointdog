@@ -1,0 +1,611 @@
+{
+  "info": {
+    "name": "PointDog API",
+    "description": "REST API do sistema PointDog — agendamento de serviços para pets.\n\n## Autenticação\nA maioria dos endpoints exige um JWT no header:\n```\nAuthorization: Bearer {{clientToken}}\n```\nApós fazer login, copie o `token` da resposta para a variável `clientToken` (CLIENTE) ou `prestadorToken` (PRESTADOR).\n\n## Roles\n- **CLIENTE** — cadastra pets e agendamentos\n- **PRESTADOR** — cadastra serviços e confirma/conclui agendamentos",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" },
+    { "key": "clientToken", "value": "", "type": "string" },
+    { "key": "prestadorToken", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] },
+            "description": "Verifica se a API está no ar."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"status\": \"ok\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /auth/register",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Maria Silva\",\n  \"email\": \"maria@email.com\",\n  \"password\": \"senha123\",\n  \"role\": \"CLIENTE\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Cadastra um novo usuário.\n\n**role** deve ser `CLIENTE` ou `PRESTADOR`.\n\nRetorna o usuário criado **sem** o campo `password`."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"id\": \"a1b2c3d4-...\",\n  \"name\": \"Maria Silva\",\n  \"email\": \"maria@email.com\",\n  \"role\": \"CLIENTE\",\n  \"createdAt\": \"2026-05-05T12:00:00.000Z\",\n  \"updatedAt\": \"2026-05-05T12:00:00.000Z\"\n}"
+            },
+            {
+              "name": "400 E-mail já cadastrado",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Email already in use\"\n}"
+            },
+            {
+              "name": "400 Role inválida",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"role must be CLIENTE or PRESTADOR\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/login",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"maria@email.com\",\n  \"password\": \"senha123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Autentica o usuário e retorna um JWT válido por 24h.\n\nCopie o `token` para a variável `clientToken` ou `prestadorToken`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"user\": {\n    \"id\": \"a1b2c3d4-...\",\n    \"name\": \"Maria Silva\",\n    \"email\": \"maria@email.com\",\n    \"role\": \"CLIENTE\"\n  }\n}"
+            },
+            {
+              "name": "401 Credenciais inválidas",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Invalid credentials\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Pets",
+      "description": "Endpoints de gerenciamento de pets. Exige autenticação com role **CLIENTE**.",
+      "item": [
+        {
+          "name": "POST /pets",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/pets", "host": ["{{baseUrl}}"], "path": ["pets"] },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rex\",\n  \"breed\": \"Labrador\",\n  \"size\": \"GRANDE\",\n  \"notes\": \"Muito agitado\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Cadastra um novo pet para o cliente autenticado.\n\n**size** deve ser `PEQUENO`, `MEDIO` ou `GRANDE`.\n\n`ownerId` é preenchido automaticamente pelo token JWT."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"id\": \"b2c3d4e5-...\",\n  \"name\": \"Rex\",\n  \"breed\": \"Labrador\",\n  \"size\": \"GRANDE\",\n  \"notes\": \"Muito agitado\",\n  \"ownerId\": \"a1b2c3d4-...\"\n}"
+            },
+            {
+              "name": "400 Tamanho inválido",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Tamanho inválido\"\n}"
+            },
+            {
+              "name": "401 Não autenticado",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Token not provided\"\n}"
+            },
+            {
+              "name": "403 Role incorreta",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Forbidden\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET /pets",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/pets", "host": ["{{baseUrl}}"], "path": ["pets"] },
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "description": "Lista todos os pets do cliente autenticado."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "[\n  {\n    \"id\": \"b2c3d4e5-...\",\n    \"name\": \"Rex\",\n    \"breed\": \"Labrador\",\n    \"size\": \"GRANDE\",\n    \"notes\": \"Muito agitado\",\n    \"ownerId\": \"a1b2c3d4-...\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "GET /pets/:id",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/pets/:id", "host": ["{{baseUrl}}"], "path": ["pets", ":id"], "variable": [{ "key": "id", "value": "b2c3d4e5-..." }] },
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "description": "Retorna um pet pelo ID. Apenas o dono pode acessar."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"id\": \"b2c3d4e5-...\",\n  \"name\": \"Rex\",\n  \"breed\": \"Labrador\",\n  \"size\": \"GRANDE\",\n  \"notes\": \"Muito agitado\",\n  \"ownerId\": \"a1b2c3d4-...\"\n}"
+            },
+            {
+              "name": "403 Pet de outro usuário",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Acesso negado\"\n}"
+            },
+            {
+              "name": "404 Pet não encontrado",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Pet não encontrado\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "PUT /pets/:id",
+          "request": {
+            "method": "PUT",
+            "url": { "raw": "{{baseUrl}}/pets/:id", "host": ["{{baseUrl}}"], "path": ["pets", ":id"], "variable": [{ "key": "id", "value": "b2c3d4e5-..." }] },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Max\",\n  \"notes\": \"Mais calmo agora\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Atualiza parcialmente um pet. Apenas o dono pode atualizar.\n\nTodos os campos são opcionais: `name`, `breed`, `size`, `notes`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"id\": \"b2c3d4e5-...\",\n  \"name\": \"Max\",\n  \"breed\": \"Labrador\",\n  \"size\": \"GRANDE\",\n  \"notes\": \"Mais calmo agora\",\n  \"ownerId\": \"a1b2c3d4-...\"\n}"
+            },
+            {
+              "name": "403 Acesso negado",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Acesso negado\"\n}"
+            },
+            {
+              "name": "404 Pet não encontrado",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Pet não encontrado\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "DELETE /pets/:id",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/pets/:id", "host": ["{{baseUrl}}"], "path": ["pets", ":id"], "variable": [{ "key": "id", "value": "b2c3d4e5-..." }] },
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "description": "Remove um pet. Apenas o dono pode deletar. Retorna 204 sem body."
+          },
+          "response": [
+            {
+              "name": "204 No Content",
+              "status": "No Content",
+              "code": 204,
+              "body": ""
+            },
+            {
+              "name": "403 Acesso negado",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Acesso negado\"\n}"
+            },
+            {
+              "name": "404 Pet não encontrado",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Pet não encontrado\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Services",
+      "description": "Endpoints de gerenciamento de serviços. Criação/edição/exclusão exige role **PRESTADOR**. Listagem e consulta exigem qualquer role autenticada.",
+      "item": [
+        {
+          "name": "POST /services",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/services", "host": ["{{baseUrl}}"], "path": ["services"] },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{prestadorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Banho e Tosa\",\n  \"description\": \"Banho completo com secagem e tosa higiênica\",\n  \"price\": 75.00,\n  \"durationMinutes\": 90\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Cadastra um novo serviço. Exclusivo para **PRESTADOR**.\n\n`providerId` é preenchido automaticamente pelo token JWT.\n\n- `price` deve ser maior que 0\n- `durationMinutes` deve ser maior que 0"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"id\": \"c3d4e5f6-...\",\n  \"name\": \"Banho e Tosa\",\n  \"description\": \"Banho completo com secagem e tosa higiênica\",\n  \"price\": 75,\n  \"durationMinutes\": 90,\n  \"providerId\": \"e5f6a7b8-...\"\n}"
+            },
+            {
+              "name": "400 Preço inválido",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Preço deve ser positivo\"\n}"
+            },
+            {
+              "name": "403 Não é PRESTADOR",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Forbidden\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET /services",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/services",
+              "host": ["{{baseUrl}}"],
+              "path": ["services"],
+              "query": [{ "key": "providerId", "value": "", "description": "Filtra serviços por prestador (opcional)", "disabled": true }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "description": "Lista todos os serviços disponíveis. Qualquer usuário autenticado pode consultar.\n\nUse o query param `?providerId=<id>` para filtrar os serviços de um prestador específico."
+          },
+          "response": [
+            {
+              "name": "200 OK — todos os serviços",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "[\n  {\n    \"id\": \"c3d4e5f6-...\",\n    \"name\": \"Banho e Tosa\",\n    \"description\": \"Banho completo com secagem e tosa higiênica\",\n    \"price\": 75,\n    \"durationMinutes\": 90,\n    \"providerId\": \"e5f6a7b8-...\"\n  }\n]"
+            },
+            {
+              "name": "200 OK — filtrado por providerId",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "[\n  {\n    \"id\": \"c3d4e5f6-...\",\n    \"name\": \"Banho e Tosa\",\n    \"description\": \"Banho completo com secagem e tosa higiênica\",\n    \"price\": 75,\n    \"durationMinutes\": 90,\n    \"providerId\": \"e5f6a7b8-...\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "GET /services/:id",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/services/:id", "host": ["{{baseUrl}}"], "path": ["services", ":id"], "variable": [{ "key": "id", "value": "c3d4e5f6-..." }] },
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "description": "Retorna um serviço pelo ID. Qualquer usuário autenticado pode consultar."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"id\": \"c3d4e5f6-...\",\n  \"name\": \"Banho e Tosa\",\n  \"description\": \"Banho completo com secagem e tosa higiênica\",\n  \"price\": 75,\n  \"durationMinutes\": 90,\n  \"providerId\": \"e5f6a7b8-...\"\n}"
+            },
+            {
+              "name": "404 Serviço não encontrado",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Serviço não encontrado\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "PUT /services/:id",
+          "request": {
+            "method": "PUT",
+            "url": { "raw": "{{baseUrl}}/services/:id", "host": ["{{baseUrl}}"], "path": ["services", ":id"], "variable": [{ "key": "id", "value": "c3d4e5f6-..." }] },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{prestadorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 90.00,\n  \"durationMinutes\": 120\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Atualiza parcialmente um serviço. Apenas o prestador dono do serviço pode atualizar.\n\nTodos os campos são opcionais: `name`, `description`, `price`, `durationMinutes`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"id\": \"c3d4e5f6-...\",\n  \"name\": \"Banho e Tosa\",\n  \"description\": \"Banho completo com secagem e tosa higiênica\",\n  \"price\": 90,\n  \"durationMinutes\": 120,\n  \"providerId\": \"e5f6a7b8-...\"\n}"
+            },
+            {
+              "name": "403 Não é o dono",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Acesso negado\"\n}"
+            },
+            {
+              "name": "404 Serviço não encontrado",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Serviço não encontrado\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "DELETE /services/:id",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/services/:id", "host": ["{{baseUrl}}"], "path": ["services", ":id"], "variable": [{ "key": "id", "value": "c3d4e5f6-..." }] },
+            "header": [{ "key": "Authorization", "value": "Bearer {{prestadorToken}}" }],
+            "description": "Remove um serviço. Apenas o prestador dono pode deletar. Retorna 204 sem body."
+          },
+          "response": [
+            {
+              "name": "204 No Content",
+              "status": "No Content",
+              "code": 204,
+              "body": ""
+            },
+            {
+              "name": "403 Acesso negado",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Acesso negado\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Appointments",
+      "description": "Endpoints de agendamento. Criação exclusiva para **CLIENTE**. Listagem, consulta e atualização de status para qualquer role autenticada.\n\n## Ciclo de status\n```\nPENDENTE → CONFIRMADO  (somente PRESTADOR)\nPENDENTE → CANCELADO   (CLIENTE ou PRESTADOR)\nCONFIRMADO → CANCELADO (CLIENTE ou PRESTADOR)\nCONFIRMADO → CONCLUIDO (somente PRESTADOR)\n```\nStatus `CANCELADO` e `CONCLUIDO` são terminais.",
+      "item": [
+        {
+          "name": "POST /appointments",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/appointments", "host": ["{{baseUrl}}"], "path": ["appointments"] },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scheduledAt\": \"2026-06-15T10:00:00.000Z\",\n  \"petId\": \"b2c3d4e5-...\",\n  \"providerId\": \"e5f6a7b8-...\",\n  \"serviceId\": \"c3d4e5f6-...\",\n  \"notes\": \"Por favor usar shampoo hipoalergênico\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Cria um novo agendamento. Exclusivo para **CLIENTE**.\n\n- `scheduledAt` deve ser uma data futura (ISO 8601)\n- `petId` deve pertencer ao cliente autenticado\n- `serviceId` deve existir\n- `notes` é opcional\n- Status inicial: `PENDENTE`"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"id\": \"d4e5f6a7-...\",\n  \"scheduledAt\": \"2026-06-15T10:00:00.000Z\",\n  \"status\": \"PENDENTE\",\n  \"notes\": \"Por favor usar shampoo hipoalergênico\",\n  \"clientId\": \"a1b2c3d4-...\",\n  \"petId\": \"b2c3d4e5-...\",\n  \"providerId\": \"e5f6a7b8-...\",\n  \"serviceId\": \"c3d4e5f6-...\"\n}"
+            },
+            {
+              "name": "400 Data no passado",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Data deve ser futura\"\n}"
+            },
+            {
+              "name": "403 Pet não pertence ao cliente",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Pet não pertence ao cliente\"\n}"
+            },
+            {
+              "name": "404 Pet não encontrado",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Pet não encontrado\"\n}"
+            },
+            {
+              "name": "404 Serviço não encontrado",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Serviço não encontrado\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET /appointments",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/appointments", "host": ["{{baseUrl}}"], "path": ["appointments"] },
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "description": "Lista os agendamentos do usuário autenticado.\n\n- **CLIENTE** vê seus próprios agendamentos como cliente\n- **PRESTADOR** vê os agendamentos em que é o prestador"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "[\n  {\n    \"id\": \"d4e5f6a7-...\",\n    \"scheduledAt\": \"2026-06-15T10:00:00.000Z\",\n    \"status\": \"PENDENTE\",\n    \"notes\": \"Por favor usar shampoo hipoalergênico\",\n    \"clientId\": \"a1b2c3d4-...\",\n    \"petId\": \"b2c3d4e5-...\",\n    \"providerId\": \"e5f6a7b8-...\",\n    \"serviceId\": \"c3d4e5f6-...\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "GET /appointments/:id",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/appointments/:id", "host": ["{{baseUrl}}"], "path": ["appointments", ":id"], "variable": [{ "key": "id", "value": "d4e5f6a7-..." }] },
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "description": "Retorna um agendamento pelo ID.\n\n- **CLIENTE** só pode ver seus próprios agendamentos\n- **PRESTADOR** só pode ver agendamentos em que é o prestador"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"id\": \"d4e5f6a7-...\",\n  \"scheduledAt\": \"2026-06-15T10:00:00.000Z\",\n  \"status\": \"PENDENTE\",\n  \"notes\": \"Por favor usar shampoo hipoalergênico\",\n  \"clientId\": \"a1b2c3d4-...\",\n  \"petId\": \"b2c3d4e5-...\",\n  \"providerId\": \"e5f6a7b8-...\",\n  \"serviceId\": \"c3d4e5f6-...\"\n}"
+            },
+            {
+              "name": "403 Acesso negado",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Acesso negado\"\n}"
+            },
+            {
+              "name": "404 Não encontrado",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Agendamento não encontrado\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "PATCH /appointments/:id/status",
+          "request": {
+            "method": "PATCH",
+            "url": { "raw": "{{baseUrl}}/appointments/:id/status", "host": ["{{baseUrl}}"], "path": ["appointments", ":id", "status"], "variable": [{ "key": "id", "value": "d4e5f6a7-..." }] },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{prestadorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CONFIRMADO\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Atualiza o status de um agendamento.\n\n**Transições permitidas:**\n\n| De | Para | Quem |\n|---|---|---|\n| PENDENTE | CONFIRMADO | PRESTADOR |\n| PENDENTE | CANCELADO | CLIENTE ou PRESTADOR |\n| CONFIRMADO | CANCELADO | CLIENTE ou PRESTADOR |\n| CONFIRMADO | CONCLUIDO | PRESTADOR |\n\nStatus `CANCELADO` e `CONCLUIDO` são terminais e não aceitam mais transições."
+          },
+          "response": [
+            {
+              "name": "200 Confirmado",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"id\": \"d4e5f6a7-...\",\n  \"scheduledAt\": \"2026-06-15T10:00:00.000Z\",\n  \"status\": \"CONFIRMADO\",\n  \"notes\": \"Por favor usar shampoo hipoalergênico\",\n  \"clientId\": \"a1b2c3d4-...\",\n  \"petId\": \"b2c3d4e5-...\",\n  \"providerId\": \"e5f6a7b8-...\",\n  \"serviceId\": \"c3d4e5f6-...\"\n}"
+            },
+            {
+              "name": "400 Transição inválida",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Transição de status inválida\"\n}"
+            },
+            {
+              "name": "400 Status terminal",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Agendamento já finalizado\"\n}"
+            },
+            {
+              "name": "403 Sem permissão para a transição",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Sem permissão para esta transição\"\n}"
+            },
+            {
+              "name": "403 Não é parte do agendamento",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Acesso negado\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
