@@ -9,5 +9,17 @@ services:
       JWT_SECRET: troque_por_um_secret_forte
       JWT_EXPIRES_IN: 24h
       PORT: 3000
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
     volumes:
       - ./prisma:/app/prisma
+    depends_on:
+      - rabbitmq
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest

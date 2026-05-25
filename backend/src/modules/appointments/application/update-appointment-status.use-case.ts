@@ -1,5 +1,6 @@
 import { Appointment } from '../domain/appointment.entity'
 import { IAppointmentRepository } from '../domain/appointment.repository'
+import { IEventPublisher } from '../../../shared/messaging/event-publisher.interface'
 import { AppError } from '../../../shared/errors/app-error'
 
 interface UpdateAppointmentStatusInput {
@@ -21,7 +22,10 @@ const validTransitions: Record<string, { to: string; allowedRoles: string[] }[]>
 }
 
 export class UpdateAppointmentStatusUseCase {
-  constructor(private readonly repository: IAppointmentRepository) {}
+  constructor(
+    private readonly repository: IAppointmentRepository,
+    private readonly eventPublisher: IEventPublisher,
+  ) {}
 
   async execute(input: UpdateAppointmentStatusInput): Promise<Appointment> {
     const appointment = await this.repository.findById(input.id)
@@ -30,7 +34,6 @@ export class UpdateAppointmentStatusUseCase {
       throw new AppError('Agendamento não encontrado', 404)
     }
 
-    // Check ownership
     if (input.requestingRole === 'CLIENTE' && appointment.clientId !== input.requestingUserId) {
       throw new AppError('Acesso negado', 403)
     }
@@ -41,7 +44,6 @@ export class UpdateAppointmentStatusUseCase {
 
     const currentStatus = appointment.status
 
-    // Check if appointment is already finalized
     if (currentStatus === 'CANCELADO' || currentStatus === 'CONCLUIDO') {
       throw new AppError('Agendamento já finalizado', 400)
     }
@@ -57,6 +59,21 @@ export class UpdateAppointmentStatusUseCase {
       throw new AppError('Sem permissão para esta transição', 403)
     }
 
-    return this.repository.updateStatus(input.id, input.newStatus)
+    const updated = await this.repository.updateStatus(input.id, input.newStatus)
+
+    await this.eventPublisher.publish('appointment.status_changed', {
+      eventType: 'appointment.status_changed',
+      timestamp: new Date().toISOString(),
+      payload: {
+        appointmentId: updated.id,
+        clientId: updated.clientId,
+        providerId: updated.providerId,
+        previousStatus: currentStatus,
+        newStatus: input.newStatus,
+        changedBy: input.requestingUserId,
+      },
+    })
+
+    return updated
   }
 }

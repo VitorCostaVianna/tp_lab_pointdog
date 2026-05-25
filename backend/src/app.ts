@@ -5,8 +5,13 @@ import { makeAuthModule } from './modules/users'
 import { makePetsModule } from './modules/pets'
 import { makeServicesModule } from './modules/services'
 import { makeAppointmentsModule } from './modules/appointments'
+import { IEventPublisher } from './shared/messaging/event-publisher.interface'
+import { NullEventPublisher } from './shared/messaging/null-event-publisher'
 
-export function createApp(prisma: PrismaClient) {
+export function createApp(
+  prisma: PrismaClient,
+  eventPublisher: IEventPublisher = new NullEventPublisher(),
+) {
   const app = express()
   app.use(express.json())
 
@@ -15,7 +20,7 @@ export function createApp(prisma: PrismaClient) {
   app.use('/auth', makeAuthModule(prisma))
   app.use('/pets', makePetsModule(prisma))
   app.use('/services', makeServicesModule(prisma))
-  app.use('/appointments', makeAppointmentsModule(prisma))
+  app.use('/appointments', makeAppointmentsModule(prisma, eventPublisher))
 
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     if (err instanceof AppError) {

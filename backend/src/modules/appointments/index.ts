@@ -8,14 +8,19 @@ import { UpdateAppointmentStatusUseCase } from './application/update-appointment
 import { makeAppointmentController } from './presentation/appointment.controller'
 import { PrismaPetRepository } from '../pets/infrastructure/prisma-pet.repository'
 import { PrismaServiceRepository } from '../services/infrastructure/prisma-service.repository'
+import { IEventPublisher } from '../../shared/messaging/event-publisher.interface'
+import { NullEventPublisher } from '../../shared/messaging/null-event-publisher'
 
-export function makeAppointmentsModule(prisma: PrismaClient): Router {
+export function makeAppointmentsModule(
+  prisma: PrismaClient,
+  eventPublisher: IEventPublisher = new NullEventPublisher(),
+): Router {
   const appointmentRepo = new PrismaAppointmentRepository(prisma)
   const petRepo = new PrismaPetRepository(prisma)
   const serviceRepo = new PrismaServiceRepository(prisma)
-  const createAppointment = new CreateAppointmentUseCase(appointmentRepo, petRepo, serviceRepo)
+  const createAppointment = new CreateAppointmentUseCase(appointmentRepo, petRepo, serviceRepo, eventPublisher)
   const listAppointments = new ListAppointmentsUseCase(appointmentRepo)
   const getAppointment = new GetAppointmentUseCase(appointmentRepo)
-  const updateAppointmentStatus = new UpdateAppointmentStatusUseCase(appointmentRepo)
+  const updateAppointmentStatus = new UpdateAppointmentStatusUseCase(appointmentRepo, eventPublisher)
   return makeAppointmentController({ createAppointment, listAppointments, getAppointment, updateAppointmentStatus })
 }
