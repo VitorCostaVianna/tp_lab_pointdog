@@ -12,3 +12,14 @@ backend/node_modules/
 .claudeignore
 .claude/*
 !.claude/settings.local.json
+
+.superpowers/
+
+# Flutter generated plugin registrants
+client/linux/flutter/generated_plugin_registrant.cc
+client/linux/flutter/generated_plugin_registrant.h
+client/linux/flutter/generated_plugins.cmake
+client/macos/Flutter/GeneratedPluginRegistrant.swift
+client/windows/flutter/generated_plugin_registrant.cc
+client/windows/flutter/generated_plugin_registrant.h
+client/windows/flutter/generated_plugins.cmake
