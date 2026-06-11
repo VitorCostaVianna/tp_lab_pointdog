@@ -1,0 +1,26 @@
+name: pointdog_client
+description: PointDog — app cliente para agendamento de banho e tosa
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.1.2
+  dio: ^5.4.3
+  shared_preferences: ^2.3.2
+  go_router: ^14.2.0
+  web_socket_channel: ^3.0.1
+  google_fonts: ^6.2.1
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
