@@ -11,8 +11,10 @@ export class PrismaServiceRepository implements IServiceRepository {
   }
 
   async findAll(): Promise<Service[]> {
-    const services = await this.prisma.service.findMany()
-    return services as Service[]
+    const results = await this.prisma.service.findMany({
+      include: { provider: { select: { id: true, name: true } } },
+    })
+    return results as unknown as Service[]
   }
 
   async findAllByProvider(providerId: string): Promise<Service[]> {
@@ -21,8 +23,11 @@ export class PrismaServiceRepository implements IServiceRepository {
   }
 
   async findById(id: string): Promise<Service | null> {
-    const service = await this.prisma.service.findUnique({ where: { id } })
-    return service as Service | null
+    const result = await this.prisma.service.findUnique({
+      where: { id },
+      include: { provider: { select: { id: true, name: true } } },
+    })
+    return result as unknown as Service | null
   }
 
   async update(id: string, data: Partial<Omit<Service, 'id' | 'providerId'>>): Promise<Service> {

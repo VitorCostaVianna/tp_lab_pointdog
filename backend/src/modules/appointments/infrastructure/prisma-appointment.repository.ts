@@ -23,8 +23,10 @@ export class PrismaAppointmentRepository implements IAppointmentRepository {
   async findAllByClient(clientId: string): Promise<Appointment[]> {
     const results = await this.prisma.appointment.findMany({
       where: { clientId },
+      include: { pet: true, service: { include: { provider: { select: { id: true, name: true } } } } },
+      orderBy: { scheduledAt: 'desc' },
     })
-    return results as Appointment[]
+    return results as unknown as Appointment[]
   }
 
   async findAllByProvider(providerId: string): Promise<Appointment[]> {
@@ -37,8 +39,9 @@ export class PrismaAppointmentRepository implements IAppointmentRepository {
   async findById(id: string): Promise<Appointment | null> {
     const result = await this.prisma.appointment.findUnique({
       where: { id },
+      include: { pet: true, service: { include: { provider: { select: { id: true, name: true } } } } },
     })
-    return result as Appointment | null
+    return result as unknown as Appointment | null
   }
 
   async updateStatus(id: string, status: string): Promise<Appointment> {
