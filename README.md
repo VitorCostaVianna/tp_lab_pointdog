@@ -12,7 +12,6 @@ Plataforma de agendamento de serviços para pets.
 tp_lab_pointdog/
 ├── backend/    # API REST + WebSocket + Worker RabbitMQ (Node.js)
 ├── client/     # App mobile Flutter
-└── docs/       # Documentação por sprint
 ```
 
 ---
