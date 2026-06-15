@@ -1,85 +1,60 @@
-# PointDog — Cliente Flutter (Sprint 3)
+# PointDog
 
-Video -> https://youtu.be/e-qaSETyqBA
+Plataforma de agendamento de serviços para pets.
+
+**Demonstração Sprint 3:** https://youtu.be/e-qaSETyqBA
 
 ---
 
-## Fluxo Completo da Aplicação
+## Estrutura do Repositório
 
 ```
-Registro / Login
+tp_lab_pointdog/
+├── backend/    # API REST + WebSocket + Worker RabbitMQ (Node.js)
+├── client/     # App mobile Flutter
+└── docs/       # Documentação por sprint
+```
+
+---
+
+## Arquitetura Geral
+
+```
+App Flutter
+  screens → providers → repositories → Dio
+       │ REST              │ WebSocket
+       ▼                   ▼
+  Backend Node.js (Express + Prisma + SQLite)
+       │ AMQP
+       ▼
+  Worker RabbitMQ
+```
+
+---
+
+## Fluxo da Aplicação
+
+```
+Login / Registro
       ↓
-Lista de Serviços  →  Detalhe do Serviço
-                              ↓
-                    Criar Agendamento
-                    (seleciona pet, data/hora, observações)
-                              ↓
-                    Lista de Agendamentos  ←─── atualização em tempo real (WS)
-                              ↓
-                    Detalhe do Agendamento
-                              ↓
-                    Cancelar Agendamento
+Serviços → Detalhe → Criar Agendamento
+                           ↓
+              Agendamentos ←── WebSocket (tempo real)
+                           ↓
+                  Detalhe → Cancelar
 
-Pets  →  Listar / Adicionar / Remover
+Pets → Listar / Adicionar / Editar / Remover
 ```
 
-## Arquitetura — Separação em Camadas
+---
 
-O projeto segue uma arquitetura em camadas inspirada em Clean Architecture, com responsabilidades bem definidas:
+## Estrutura Flutter (`/client`)
 
 ```
 lib/
-├── core/                          # Infraestrutura transversal
-│   ├── auth/
-│   │   └── auth_storage.dart      # Persistência de token JWT (SharedPreferences)
-│   ├── config/
-│   │   └── app_config.dart        # URLs base (BASE_URL, WS_URL)
-│   ├── network/
-│   │   ├── http_client.dart       # Singleton Dio + interceptor JWT
-│   │   └── websocket_service.dart # Singleton WebSocket + broadcast stream
-│   └── theme.dart                 # Design system (cores, tipografia)
-│
-├── models/                        # Entidades de dados
-│   ├── appointment.dart
-│   ├── pet.dart
-│   ├── service.dart
-│   └── user.dart
-│
-├── repositories/                  # Acesso a dados (REST)
-│   ├── appointments_repository.dart
-│   ├── auth_repository.dart
-│   ├── pets_repository.dart
-│   └── services_repository.dart
-│
-├── providers/                     # Gerenciamento de estado (ChangeNotifier)
-│   ├── appointments_notifier.dart  ← também escuta WebSocket
-│   ├── auth_notifier.dart          ← gerencia login/logout + conexão WS
-│   ├── pets_notifier.dart
-│   └── services_notifier.dart
-│
-└── screens/                       # Interface do usuário
-    ├── app_shell.dart             # ShellRoute com BottomNavigationBar
-    ├── auth/
-    │   ├── login_screen.dart
-    │   └── register_screen.dart
-    ├── appointments/
-    │   ├── appointments_list_screen.dart
-    │   └── appointment_detail_screen.dart
-    ├── pets/
-    │   └── pets_screen.dart
-    └── services/
-        ├── services_list_screen.dart
-        ├── service_detail_screen.dart
-        └── create_appointment_screen.dart
+├── core/           # HTTP client, WebSocket, auth, config, tema
+├── models/         # Appointment, Pet, Service, User
+├── repositories/   # Acesso REST (Dio)
+├── providers/      # Estado (ChangeNotifier)
+└── screens/        # UI (auth, services, appointments, pets)
 ```
-
-
-
-
-
-
-
-
-
-
-
