@@ -1,8 +1,6 @@
 # PointDog — Cliente Flutter (Sprint 3)
 
-Video -> https://youtu.be/dNRl7bRGK-w
-
-App mobile de agendamento de serviços para pets, desenvolvido em Flutter com arquitetura em camadas, integração REST com backend Node.js e atualização de estado em tempo real via WebSocket.
+Video -> https://youtu.be/e-qaSETyqBA
 
 ---
 
@@ -24,42 +22,6 @@ Lista de Serviços  →  Detalhe do Serviço
 
 Pets  →  Listar / Adicionar / Remover
 ```
-
----
-
-## Como Executar
-
-### Pré-requisitos
-- Flutter SDK instalado
-- Backend rodando (`npm run dev` na pasta `/backend`)
-- RabbitMQ rodando (`npm run infra:up` na pasta `/backend`)
-- Worker rodando (`npm run worker` na pasta `/backend`)
-- Emulador Android (LDPlayer ou AVD) conectado via ADB
-
-### Passos
-
-```bash
-# 1. Instalar dependências
-flutter pub get
-
-# 2. Rodar no emulador
-flutter run -d localhost:5555
-
-# 3. Rodar no Chrome (desenvolvimento web)
-flutter run -d chrome
-```
-
-### Configuração de URL
-
-A URL base é configurável via variável de ambiente em tempo de compilação:
-
-```bash
-flutter run --dart-define=BASE_URL=http://SEU_IP:3000 --dart-define=WS_URL=ws://SEU_IP:3000/ws
-```
-
-O valor padrão está definido em `lib/core/config/app_config.dart`.
-
----
 
 ## Arquitetura — Separação em Camadas
 
