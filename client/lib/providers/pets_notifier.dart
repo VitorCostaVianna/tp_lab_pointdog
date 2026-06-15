@@ -44,4 +44,36 @@ class PetsNotifier extends ChangeNotifier {
       return false;
     }
   }
+
+  Future<bool> updatePet({
+    required String id,
+    required String name,
+    required String breed,
+    required String size,
+    String? notes,
+  }) async {
+    try {
+      final updated = await _repo.update(id: id, name: name, breed: breed, size: size, notes: notes);
+      _pets = _pets.map((p) => p.id == id ? updated : p).toList();
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> removePet(String id) async {
+    try {
+      await _repo.delete(id);
+      _pets = _pets.where((p) => p.id != id).toList();
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
 }

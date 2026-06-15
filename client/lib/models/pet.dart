@@ -30,4 +30,13 @@ class Pet {
     'size': size,
     if (notes != null) 'notes': notes,
   };
+
+  Pet copyWith({String? name, String? breed, String? size, String? notes}) => Pet(
+    id: id,
+    name: name ?? this.name,
+    breed: breed ?? this.breed,
+    size: size ?? this.size,
+    ownerId: ownerId,
+    notes: notes ?? this.notes,
+  );
 }

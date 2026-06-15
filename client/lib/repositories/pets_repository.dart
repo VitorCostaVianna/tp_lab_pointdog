@@ -25,4 +25,24 @@ class PetsRepository {
     });
     return Pet.fromJson(response.data as Map<String, dynamic>);
   }
+
+  Future<Pet> update({
+    required String id,
+    required String name,
+    required String breed,
+    required String size,
+    String? notes,
+  }) async {
+    final response = await _dio.put('/pets/$id', data: {
+      'name': name,
+      'breed': breed,
+      'size': size,
+      if (notes != null && notes.isNotEmpty) 'notes': notes,
+    });
+    return Pet.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<void> delete(String id) async {
+    await _dio.delete('/pets/$id');
+  }
 }
