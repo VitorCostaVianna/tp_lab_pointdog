@@ -1,7 +1,6 @@
 # Docs and context files
-docs/
+docs/superpowers/
 contexto/
-*.md
 
 backend/node_modules/
 .claude/
