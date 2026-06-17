@@ -40,7 +40,11 @@ class AuthNotifier extends ChangeNotifier {
       final token = data['token'] as String;
       final userMap = data['user'] as Map<String, dynamic>;
       _user = User.fromJson({...userMap, 'email': email});
-      await _storage.save(token: token, userId: _user!.id);
+      await _storage.save(
+        token: token,
+        userId: _user!.id,
+        role: _user!.role,
+      );
       _status = AuthStatus.authenticated;
       _ws.connect();
       notifyListeners();
@@ -53,12 +57,17 @@ class AuthNotifier extends ChangeNotifier {
     }
   }
 
-  Future<bool> register(String name, String email, String password) async {
+  Future<bool> register(
+    String name,
+    String email,
+    String password, {
+    String role = 'CLIENTE',
+  }) async {
     _status = AuthStatus.loading;
     _error = null;
     notifyListeners();
     try {
-      await _repo.register(name, email, password);
+      await _repo.register(name, email, password, role: role);
       _status = AuthStatus.unauthenticated;
       notifyListeners();
       return true;
