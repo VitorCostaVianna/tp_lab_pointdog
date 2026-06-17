@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../providers/auth_notifier.dart';
@@ -11,11 +12,12 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _nameCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
+  final _nameCtrl     = TextEditingController();
+  final _emailCtrl    = TextEditingController();
   final _passwordCtrl = TextEditingController();
-  final _form = GlobalKey<FormState>();
-  String _role = 'CLIENTE';
+  final _form         = GlobalKey<FormState>();
+  String _role  = 'CLIENTE';
+  bool _obscure = true;
 
   @override
   void dispose() {
@@ -58,85 +60,272 @@ class _RegisterScreenState extends State<RegisterScreen> {
       (n) => n.status == AuthStatus.loading,
     );
     return Scaffold(
-      appBar: AppBar(title: const Text('Criar conta')),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Form(
-            key: _form,
+      body: Stack(
+        children: [
+          Container(
+            height: MediaQuery.of(context).size.height * 0.36,
+            decoration: const BoxDecoration(gradient: AppTheme.heroGradient),
+          ),
+          SafeArea(
             child: Column(
               children: [
-                TextFormField(
-                  controller: _nameCtrl,
-                  decoration: const InputDecoration(labelText: 'NOME COMPLETO'),
-                  validator: (v) =>
-                      v == null || v.isEmpty ? 'Informe o nome' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'EMAIL'),
-                  validator: (v) =>
-                      v == null || !v.contains('@') ? 'Email inválido' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _passwordCtrl,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'SENHA'),
-                  validator: (v) => v == null || v.length < 6
-                      ? 'Mínimo 6 caracteres'
-                      : null,
-                ),
-                const SizedBox(height: 20),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'TIPO DE CONTA',
-                    style: const TextStyle(
-                      color: AppTheme.textMuted,
-                      fontSize: 11,
-                    ),
+                // Header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 20),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new,
+                            size: 18, color: AppTheme.textMuted),
+                        onPressed: () => context.pop(),
+                      ),
+                      const Spacer(),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(
-                        value: 'CLIENTE',
-                        label: Text('Cliente'),
-                        icon: Text('🐶'),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Criar conta',
+                        style: GoogleFonts.bricolageGrotesque(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.textPrimary,
+                        ),
                       ),
-                      ButtonSegment(
-                        value: 'PRESTADOR',
-                        label: Text('Prestador'),
-                        icon: Text('🧰'),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Junte-se ao PointDog',
+                        style: GoogleFonts.outfit(
+                          fontSize: 13,
+                          color: AppTheme.textMuted,
+                        ),
                       ),
                     ],
-                    selected: {_role},
-                    onSelectionChanged: (sel) =>
-                        setState(() => _role = sel.first),
-                    style: ButtonStyle(
-                      foregroundColor: WidgetStateProperty.resolveWith(
-                        (states) => states.contains(WidgetState.selected)
-                            ? AppTheme.accent
-                            : AppTheme.textMuted,
+                  ),
+                ),
+                // Form card
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      color: AppTheme.surface,
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(32),
+                      ),
+                    ),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(28, 32, 28, 32),
+                      child: Form(
+                        key: _form,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TextFormField(
+                              controller: _nameCtrl,
+                              style: const TextStyle(
+                                  color: AppTheme.textPrimary),
+                              decoration: const InputDecoration(
+                                labelText: 'Nome completo',
+                                hintText: 'João Silva',
+                                prefixIcon: Icon(Icons.person_outline, size: 20),
+                              ),
+                              validator: (v) => v == null || v.isEmpty
+                                  ? 'Informe o nome'
+                                  : null,
+                            ),
+                            const SizedBox(height: 14),
+                            TextFormField(
+                              controller: _emailCtrl,
+                              keyboardType: TextInputType.emailAddress,
+                              style: const TextStyle(
+                                  color: AppTheme.textPrimary),
+                              decoration: const InputDecoration(
+                                labelText: 'E-mail',
+                                hintText: 'seu@email.com',
+                                prefixIcon:
+                                    Icon(Icons.email_outlined, size: 20),
+                              ),
+                              validator: (v) =>
+                                  v == null || !v.contains('@')
+                                      ? 'E-mail inválido'
+                                      : null,
+                            ),
+                            const SizedBox(height: 14),
+                            TextFormField(
+                              controller: _passwordCtrl,
+                              obscureText: _obscure,
+                              style: const TextStyle(
+                                  color: AppTheme.textPrimary),
+                              decoration: InputDecoration(
+                                labelText: 'Senha',
+                                hintText: '••••••',
+                                prefixIcon: const Icon(Icons.lock_outline,
+                                    size: 20),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscure
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                    size: 20,
+                                    color: AppTheme.textMuted,
+                                  ),
+                                  onPressed: () =>
+                                      setState(() => _obscure = !_obscure),
+                                ),
+                              ),
+                              validator: (v) => v == null || v.length < 6
+                                  ? 'Mínimo 6 caracteres'
+                                  : null,
+                            ),
+                            const SizedBox(height: 24),
+                            Text(
+                              'Tipo de conta',
+                              style: GoogleFonts.outfit(
+                                color: AppTheme.textMuted,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                _RoleCard(
+                                  icon: '🐶',
+                                  label: 'Cliente',
+                                  subtitle: 'Agende serviços',
+                                  selected: _role == 'CLIENTE',
+                                  onTap: () =>
+                                      setState(() => _role = 'CLIENTE'),
+                                ),
+                                const SizedBox(width: 12),
+                                _RoleCard(
+                                  icon: '🧰',
+                                  label: 'Prestador',
+                                  subtitle: 'Ofereça serviços',
+                                  selected: _role == 'PRESTADOR',
+                                  onTap: () =>
+                                      setState(() => _role = 'PRESTADOR'),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 28),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 52,
+                              child: loading
+                                  ? const Center(
+                                      child: CircularProgressIndicator(
+                                        color: AppTheme.accent,
+                                        strokeWidth: 2.5,
+                                      ),
+                                    )
+                                  : FilledButton(
+                                      onPressed: _submit,
+                                      child: const Text('Criar conta'),
+                                    ),
+                            ),
+                            const SizedBox(height: 20),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Já tem conta?',
+                                  style: GoogleFonts.outfit(
+                                    color: AppTheme.textMuted,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () => context.go('/login'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: AppTheme.accent,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8),
+                                  ),
+                                  child: Text(
+                                    'Entrar',
+                                    style: GoogleFonts.bricolageGrotesque(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
-                loading
-                    ? const CircularProgressIndicator(color: AppTheme.accent)
-                    : ElevatedButton(
-                        onPressed: _submit,
-                        child: const Text('Criar conta'),
-                      ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RoleCard extends StatelessWidget {
+  final String icon;
+  final String label;
+  final String subtitle;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _RoleCard({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+          decoration: BoxDecoration(
+            color: selected
+                ? AppTheme.accent.withAlpha(20)
+                : AppTheme.surface2,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected ? AppTheme.accent : AppTheme.border,
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            children: [
+              Text(icon, style: const TextStyle(fontSize: 28)),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: GoogleFonts.bricolageGrotesque(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  color: selected
+                      ? AppTheme.accent
+                      : AppTheme.textPrimary,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: GoogleFonts.outfit(
+                  fontSize: 11,
+                  color: AppTheme.textMuted,
+                ),
+              ),
+            ],
           ),
         ),
       ),

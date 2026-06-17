@@ -9,84 +9,85 @@ class AppShell extends StatelessWidget {
   bool get _isProvider => AuthStorage().role == 'PRESTADOR';
 
   int _selectedIndex(BuildContext context) {
-    final location = GoRouterState.of(context).matchedLocation;
+    final loc = GoRouterState.of(context).matchedLocation;
     if (_isProvider) {
-      if (location.startsWith('/provider/active')) return 1;
-      if (location.startsWith('/provider/history')) return 2;
-      if (location.startsWith('/provider/services')) return 3;
-      return 0; // /provider/pending
+      if (loc.startsWith('/provider/active'))   return 1;
+      if (loc.startsWith('/provider/history'))  return 2;
+      if (loc.startsWith('/provider/services')) return 3;
+      return 0;
     }
-    if (location.startsWith('/appointments')) return 1;
-    if (location.startsWith('/pets')) return 2;
-    return 0; // /services
+    if (loc.startsWith('/appointments')) return 1;
+    if (loc.startsWith('/pets'))         return 2;
+    return 0;
   }
 
   void _onTap(BuildContext context, int index) {
     if (_isProvider) {
-      switch (index) {
-        case 0:
-          context.go('/provider/pending');
-        case 1:
-          context.go('/provider/active');
-        case 2:
-          context.go('/provider/history');
-        case 3:
-          context.go('/provider/services');
-      }
+      const routes = [
+        '/provider/pending',
+        '/provider/active',
+        '/provider/history',
+        '/provider/services',
+      ];
+      context.go(routes[index]);
       return;
     }
-    switch (index) {
-      case 0:
-        context.go('/services');
-      case 1:
-        context.go('/appointments');
-      case 2:
-        context.go('/pets');
+    const routes = ['/services', '/appointments', '/pets'];
+    context.go(routes[index]);
+  }
+
+  List<NavigationDestination> _destinations() {
+    if (_isProvider) {
+      return const [
+        NavigationDestination(
+          icon: Icon(Icons.inbox_outlined),
+          selectedIcon: Icon(Icons.inbox),
+          label: 'Pendentes',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.sync_outlined),
+          selectedIcon: Icon(Icons.sync),
+          label: 'Em andamento',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.history_outlined),
+          selectedIcon: Icon(Icons.history),
+          label: 'Histórico',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.design_services_outlined),
+          selectedIcon: Icon(Icons.design_services),
+          label: 'Serviços',
+        ),
+      ];
     }
+    return const [
+      NavigationDestination(
+        icon: Icon(Icons.content_cut_outlined),
+        selectedIcon: Icon(Icons.content_cut),
+        label: 'Serviços',
+      ),
+      NavigationDestination(
+        icon: Icon(Icons.event_outlined),
+        selectedIcon: Icon(Icons.event),
+        label: 'Agenda',
+      ),
+      NavigationDestination(
+        icon: Icon(Icons.pets_outlined),
+        selectedIcon: Icon(Icons.pets),
+        label: 'Pets',
+      ),
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
-    final items = _isProvider
-        ? const [
-            BottomNavigationBarItem(
-              icon: Text('📥', style: TextStyle(fontSize: 22)),
-              label: 'Pendentes',
-            ),
-            BottomNavigationBarItem(
-              icon: Text('🔄', style: TextStyle(fontSize: 22)),
-              label: 'Em Andamento',
-            ),
-            BottomNavigationBarItem(
-              icon: Text('📜', style: TextStyle(fontSize: 22)),
-              label: 'Histórico',
-            ),
-            BottomNavigationBarItem(
-              icon: Text('🛠', style: TextStyle(fontSize: 22)),
-              label: 'Serviços',
-            ),
-          ]
-        : const [
-            BottomNavigationBarItem(
-              icon: Text('🐾', style: TextStyle(fontSize: 22)),
-              label: 'Serviços',
-            ),
-            BottomNavigationBarItem(
-              icon: Text('📅', style: TextStyle(fontSize: 22)),
-              label: 'Agendamentos',
-            ),
-            BottomNavigationBarItem(
-              icon: Text('🐶', style: TextStyle(fontSize: 22)),
-              label: 'Pets',
-            ),
-          ];
-
     return Scaffold(
       body: child,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex(context),
-        onTap: (index) => _onTap(context, index),
-        items: items,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex(context),
+        onDestinationSelected: (i) => _onTap(context, i),
+        destinations: _destinations(),
       ),
     );
   }

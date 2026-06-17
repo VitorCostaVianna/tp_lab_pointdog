@@ -21,8 +21,14 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
     });
   }
 
-  String _fmt(DateTime dt) =>
-      '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  String _fmt(DateTime dt) {
+    const months = [
+      'jan', 'fev', 'mar', 'abr', 'mai', 'jun',
+      'jul', 'ago', 'set', 'out', 'nov', 'dez',
+    ];
+    return '${dt.day} ${months[dt.month - 1]} · '
+        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,18 +38,19 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: AppTheme.statusConfirmado.withAlpha(25),
+              color: AppTheme.statusConfirmado.withAlpha(20),
               border: Border.all(
-                  color: AppTheme.statusConfirmado.withAlpha(60)),
+                  color: AppTheme.statusConfirmado.withAlpha(55)),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const _PulseDot(),
-                const SizedBox(width: 4),
+                const SizedBox(width: 5),
                 Text(
                   'ao vivo',
                   style: GoogleFonts.outfit(
@@ -59,82 +66,160 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
       ),
       body: Consumer<AppointmentsNotifier>(
         builder: (_, notifier, __) {
-          if (notifier.loading) {
+          if (notifier.loading && notifier.appointments.isEmpty) {
             return const Center(
               child: CircularProgressIndicator(color: AppTheme.accent),
             );
           }
           if (notifier.appointments.isEmpty) {
-            return const Center(
-              child: Text(
-                'Nenhum agendamento.',
-                style: TextStyle(color: AppTheme.textMuted),
+            return RefreshIndicator(
+              onRefresh: notifier.loadAll,
+              color: AppTheme.accent,
+              child: ListView(
+                children: const [
+                  SizedBox(height: 120),
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('📅', style: TextStyle(fontSize: 48)),
+                        SizedBox(height: 12),
+                        Text(
+                          'Nenhum agendamento ainda.',
+                          style: TextStyle(color: AppTheme.textMuted),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Explore os serviços para começar.',
+                          style: TextStyle(
+                              color: AppTheme.textMuted, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             );
           }
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: notifier.appointments.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (_, i) {
-              final a = notifier.appointments[i];
-              final color = statusColor(a.status);
-              return InkWell(
-                onTap: () => context.push('/appointments/${a.id}'),
-                borderRadius: BorderRadius.circular(14),
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
+          return RefreshIndicator(
+            onRefresh: notifier.loadAll,
+            color: AppTheme.accent,
+            child: ListView.builder(
+              padding:
+                  const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              itemCount: notifier.appointments.length,
+              itemBuilder: (_, i) {
+                final a = notifier.appointments[i];
+                final color = statusColor(a.status);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Material(
                     color: AppTheme.surface2,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppTheme.border),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    borderRadius: BorderRadius.circular(16),
+                    child: InkWell(
+                      onTap: () => context.push('/appointments/${a.id}'),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppTheme.border),
+                          boxShadow: AppTheme.cardShadow,
+                        ),
+                        child: Row(
                           children: [
-                            Text(
-                              a.service?.name ?? 'Serviço',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
+                            // Status left bar
+                            Container(
+                              width: 4,
+                              height: 72,
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: const BorderRadius.horizontal(
+                                    left: Radius.circular(16)),
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${a.pet?.name ?? 'Pet'} · ${_fmt(a.scheduledAt)}',
-                              style: const TextStyle(
-                                color: AppTheme.textMuted,
-                                fontSize: 11,
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 12),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            a.service?.name ?? 'Serviço',
+                                            style: GoogleFonts
+                                                .bricolageGrotesque(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 14,
+                                              color: AppTheme.textPrimary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.pets_outlined,
+                                                  size: 12,
+                                                  color: AppTheme.textMuted),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                a.pet?.name ?? 'Pet',
+                                                style: const TextStyle(
+                                                  color: AppTheme.textMuted,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              const Icon(
+                                                  Icons.access_time_outlined,
+                                                  size: 12,
+                                                  color: AppTheme.textMuted),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                _fmt(a.scheduledAt),
+                                                style: const TextStyle(
+                                                  color: AppTheme.textMuted,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 5),
+                                      decoration: BoxDecoration(
+                                        color: color.withAlpha(30),
+                                        border: Border.all(
+                                            color: color.withAlpha(70)),
+                                        borderRadius:
+                                            BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        statusLabel(a.status),
+                                        style: GoogleFonts.outfit(
+                                          color: color,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 9, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: color.withAlpha(35),
-                          border: Border.all(color: color.withAlpha(80)),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          a.status,
-                          style: TextStyle(
-                            color: color,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           );
         },
       ),
@@ -160,7 +245,9 @@ class _PulseDotState extends State<_PulseDot>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
-    _anim = Tween<double>(begin: 1.0, end: 0.4).animate(_ctrl);
+    _anim = Tween<double>(begin: 1.0, end: 0.3).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
   }
 
   @override
