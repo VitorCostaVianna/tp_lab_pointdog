@@ -17,6 +17,10 @@ import 'screens/services/create_appointment_screen.dart';
 import 'screens/appointments/appointments_list_screen.dart';
 import 'screens/appointments/appointment_detail_screen.dart';
 import 'screens/pets/pets_screen.dart';
+import 'screens/provider/provider_pending_screen.dart';
+import 'screens/provider/provider_active_screen.dart';
+import 'screens/provider/provider_history_screen.dart';
+import 'screens/provider/provider_appointment_detail_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,7 +55,11 @@ class _PointDogAppState extends State<PointDogApp> {
         final isAuth = state.matchedLocation == '/login' ||
             state.matchedLocation == '/register';
         if (!loggedIn && !isAuth) return '/login';
-        if (loggedIn && isAuth) return '/services';
+        if (loggedIn && isAuth) {
+          return AuthStorage().role == 'PRESTADOR'
+              ? '/provider/pending'
+              : '/services';
+        }
         return null;
       },
       routes: [
@@ -72,6 +80,18 @@ class _PointDogAppState extends State<PointDogApp> {
               path: '/pets',
               builder: (_, __) => const PetsScreen(),
             ),
+            GoRoute(
+              path: '/provider/pending',
+              builder: (_, __) => const ProviderPendingScreen(),
+            ),
+            GoRoute(
+              path: '/provider/active',
+              builder: (_, __) => const ProviderActiveScreen(),
+            ),
+            GoRoute(
+              path: '/provider/history',
+              builder: (_, __) => const ProviderHistoryScreen(),
+            ),
           ],
         ),
         GoRoute(
@@ -88,6 +108,11 @@ class _PointDogAppState extends State<PointDogApp> {
         GoRoute(
           path: '/appointments/:id',
           builder: (_, state) => AppointmentDetailScreen(
+              appointmentId: state.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/provider/appointments/:id',
+          builder: (_, state) => ProviderAppointmentDetailScreen(
               appointmentId: state.pathParameters['id']!),
         ),
       ],
