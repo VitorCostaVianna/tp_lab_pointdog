@@ -116,32 +116,6 @@ class _PetsScreenState extends State<PetsScreen> {
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, Pet pet) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surface2,
-        title: const Text('Remover pet'),
-        content: Text('Deseja remover ${pet.name}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar',
-                style: TextStyle(color: AppTheme.textMuted)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remover',
-                style: TextStyle(color: AppTheme.statusCancelado)),
-          ),
-        ],
-      ),
-    );
-    if (confirm == true && context.mounted) {
-      context.read<PetsNotifier>().removePet(pet.id);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -13,6 +13,7 @@ class AppShell extends StatelessWidget {
     if (_isProvider) {
       if (location.startsWith('/provider/active')) return 1;
       if (location.startsWith('/provider/history')) return 2;
+      if (location.startsWith('/provider/services')) return 3;
       return 0; // /provider/pending
     }
     if (location.startsWith('/appointments')) return 1;
@@ -29,6 +30,8 @@ class AppShell extends StatelessWidget {
           context.go('/provider/active');
         case 2:
           context.go('/provider/history');
+        case 3:
+          context.go('/provider/services');
       }
       return;
     }
@@ -57,6 +60,10 @@ class AppShell extends StatelessWidget {
             BottomNavigationBarItem(
               icon: Text('📜', style: TextStyle(fontSize: 22)),
               label: 'Histórico',
+            ),
+            BottomNavigationBarItem(
+              icon: Text('🛠', style: TextStyle(fontSize: 22)),
+              label: 'Serviços',
             ),
           ]
         : const [

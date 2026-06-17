@@ -21,6 +21,8 @@ import 'screens/provider/provider_pending_screen.dart';
 import 'screens/provider/provider_active_screen.dart';
 import 'screens/provider/provider_history_screen.dart';
 import 'screens/provider/provider_appointment_detail_screen.dart';
+import 'screens/provider/provider_services_screen.dart';
+import 'screens/provider/provider_service_form_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -92,6 +94,10 @@ class _PointDogAppState extends State<PointDogApp> {
               path: '/provider/history',
               builder: (_, __) => const ProviderHistoryScreen(),
             ),
+            GoRoute(
+              path: '/provider/services',
+              builder: (_, __) => const ProviderServicesScreen(),
+            ),
           ],
         ),
         GoRoute(
@@ -114,6 +120,15 @@ class _PointDogAppState extends State<PointDogApp> {
           path: '/provider/appointments/:id',
           builder: (_, state) => ProviderAppointmentDetailScreen(
               appointmentId: state.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/provider/services/new',
+          builder: (_, __) => const ProviderServiceFormScreen(),
+        ),
+        GoRoute(
+          path: '/provider/services/:id/edit',
+          builder: (_, state) => ProviderServiceFormScreen(
+              existing: state.extra as Service?),
         ),
       ],
     );
