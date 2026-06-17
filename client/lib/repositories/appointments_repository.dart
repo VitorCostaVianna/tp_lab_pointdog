@@ -33,8 +33,10 @@ class AppointmentsRepository {
     return Appointment.fromJson(response.data as Map<String, dynamic>);
   }
 
-  Future<Appointment> cancel(String id) async {
-    final response = await _dio.patch('/appointments/$id/status', data: {'status': 'CANCELADO'});
+  Future<Appointment> updateStatus(String id, String status) async {
+    final response = await _dio.patch('/appointments/$id/status', data: {'status': status});
     return Appointment.fromJson(response.data as Map<String, dynamic>);
   }
+
+  Future<Appointment> cancel(String id) => updateStatus(id, 'CANCELADO');
 }

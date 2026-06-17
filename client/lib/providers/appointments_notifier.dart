@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import '../core/auth/auth_storage.dart';
 import '../core/network/websocket_service.dart';
 import '../models/appointment.dart';
 import '../repositories/appointments_repository.dart';
@@ -19,11 +20,22 @@ class AppointmentsNotifier extends ChangeNotifier {
   bool get loading => _loading;
   String? get error => _error;
 
+  List<Appointment> get pending =>
+      _appointments.where((a) => a.status == 'PENDENTE').toList();
+  List<Appointment> get active =>
+      _appointments.where((a) => a.status == 'CONFIRMADO').toList();
+  List<Appointment> get history => _appointments
+      .where((a) => a.status == 'CANCELADO' || a.status == 'CONCLUIDO')
+      .toList();
+
   void startListening() {
     _wsSub?.cancel();
     _wsSub = _ws.stream.listen((event) {
-      if (event['eventType'] == 'appointment.status_changed') {
-        final payload = event['payload'] as Map<String, dynamic>;
+      final eventType = event['eventType'] as String?;
+      final payload = event['payload'] as Map<String, dynamic>?;
+      if (payload == null) return;
+
+      if (eventType == 'appointment.status_changed') {
         final appointmentId = payload['appointmentId'] as String?;
         final newStatus = payload['newStatus'] as String?;
         if (appointmentId == null || newStatus == null) return;
@@ -36,6 +48,18 @@ class AppointmentsNotifier extends ChangeNotifier {
           _selected = _selected!.copyWith(status: newStatus);
         }
         notifyListeners();
+        return;
+      }
+
+      if (eventType == 'appointment.created') {
+        final auth = AuthStorage();
+        final providerId = payload['providerId'] as String?;
+        if (auth.role == 'PRESTADOR' && providerId == auth.userId) {
+          // O payload do evento carrega apenas IDs; recarregamos via REST
+          // para obter os dados enriquecidos (pet, serviço).
+          loadAll();
+        }
+        return;
       }
     });
   }
@@ -93,10 +117,11 @@ class AppointmentsNotifier extends ChangeNotifier {
     }
   }
 
-  Future<bool> cancel(String id) async {
+  Future<bool> _patch(String id, String status) async {
     try {
-      final updated = await _repo.cancel(id);
-      _appointments = _appointments.map((a) => a.id == id ? updated : a).toList();
+      final updated = await _repo.updateStatus(id, status);
+      _appointments =
+          _appointments.map((a) => a.id == id ? updated : a).toList();
       _selected = _selected?.id == id ? updated : _selected;
       notifyListeners();
       return true;
@@ -106,6 +131,11 @@ class AppointmentsNotifier extends ChangeNotifier {
       return false;
     }
   }
+
+  Future<bool> cancel(String id) => _patch(id, 'CANCELADO');
+  Future<bool> confirm(String id) => _patch(id, 'CONFIRMADO');
+  Future<bool> complete(String id) => _patch(id, 'CONCLUIDO');
+  Future<bool> decline(String id) => _patch(id, 'CANCELADO');
 
   @override
   void dispose() {
