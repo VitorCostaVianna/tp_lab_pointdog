@@ -15,6 +15,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _form = GlobalKey<FormState>();
+  String _role = 'CLIENTE';
 
   @override
   void dispose() {
@@ -31,6 +32,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _nameCtrl.text.trim(),
       _emailCtrl.text.trim(),
       _passwordCtrl.text,
+      role: _role,
     );
     if (ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -86,6 +88,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   validator: (v) => v == null || v.length < 6
                       ? 'Mínimo 6 caracteres'
                       : null,
+                ),
+                const SizedBox(height: 20),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'TIPO DE CONTA',
+                    style: const TextStyle(
+                      color: AppTheme.textMuted,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(
+                        value: 'CLIENTE',
+                        label: Text('Cliente'),
+                        icon: Text('🐶'),
+                      ),
+                      ButtonSegment(
+                        value: 'PRESTADOR',
+                        label: Text('Prestador'),
+                        icon: Text('🧰'),
+                      ),
+                    ],
+                    selected: {_role},
+                    onSelectionChanged: (sel) =>
+                        setState(() => _role = sel.first),
+                    style: ButtonStyle(
+                      foregroundColor: WidgetStateProperty.resolveWith(
+                        (states) => states.contains(WidgetState.selected)
+                            ? AppTheme.accent
+                            : AppTheme.textMuted,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 loading
