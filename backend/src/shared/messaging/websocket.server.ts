@@ -3,9 +3,12 @@ import http from 'http'
 import { JwtService } from '../services/jwt.service'
 import { IEventPublisher } from './event-publisher.interface'
 
-interface StatusChangedEvent {
-  eventType: string
-  payload: { clientId?: string }
+interface RoutableEvent {
+  eventType?: string
+  payload?: {
+    clientId?: string
+    providerId?: string
+  }
 }
 
 export class WebSocketEventPublisher implements IEventPublisher {
@@ -48,14 +51,22 @@ export class WebSocketEventPublisher implements IEventPublisher {
   }
 
   async publish(_routingKey: string, payload: unknown): Promise<void> {
-    const event = payload as StatusChangedEvent
-    const clientId = event?.payload?.clientId
-    if (!clientId) return
+    const event = payload as RoutableEvent
+    const message = JSON.stringify(payload)
 
-    const connections = this.clients.get(clientId)
+    const targets = new Set<string>()
+    if (event?.payload?.clientId) targets.add(event.payload.clientId)
+    if (event?.payload?.providerId) targets.add(event.payload.providerId)
+
+    for (const userId of targets) {
+      this.sendToUser(userId, message)
+    }
+  }
+
+  private sendToUser(userId: string, message: string): void {
+    const connections = this.clients.get(userId)
     if (!connections?.size) return
 
-    const message = JSON.stringify(payload)
     for (const ws of connections) {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(message)
