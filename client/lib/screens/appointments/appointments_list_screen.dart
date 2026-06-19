@@ -21,14 +21,16 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
     });
   }
 
-  String _fmt(DateTime dt) {
+  String _fmtDate(DateTime dt) {
     const months = [
       'jan', 'fev', 'mar', 'abr', 'mai', 'jun',
       'jul', 'ago', 'set', 'out', 'nov', 'dez',
     ];
-    return '${dt.day} ${months[dt.month - 1]} · '
-        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    return '${dt.day} ${months[dt.month - 1]}';
   }
+
+  String _fmtTime(DateTime dt) =>
+      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
@@ -38,8 +40,7 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 16),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
               color: AppTheme.statusConfirmado.withAlpha(20),
               border: Border.all(
@@ -82,7 +83,8 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('📅', style: TextStyle(fontSize: 48)),
+                        Icon(Icons.event_outlined,
+                            size: 48, color: AppTheme.textMuted),
                         SizedBox(height: 12),
                         Text(
                           'Nenhum agendamento ainda.',
@@ -105,8 +107,7 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
             onRefresh: notifier.loadAll,
             color: AppTheme.accent,
             child: ListView.builder(
-              padding:
-                  const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
               itemCount: notifier.appointments.length,
               itemBuilder: (_, i) {
                 final a = notifier.appointments[i];
@@ -125,94 +126,105 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
                           border: Border.all(color: AppTheme.border),
                           boxShadow: AppTheme.cardShadow,
                         ),
-                        child: Row(
-                          children: [
-                            // Status left bar
-                            Container(
-                              width: 4,
-                              height: 72,
-                              decoration: BoxDecoration(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Row(
+                            children: [
+                              // Status left strip
+                              Container(
+                                width: 3,
+                                height: 90,
                                 color: color,
-                                borderRadius: const BorderRadius.horizontal(
-                                    left: Radius.circular(16)),
                               ),
-                            ),
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 12),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                      14, 13, 14, 13),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Header: service + date/time
+                                      Row(
                                         children: [
-                                          Text(
-                                            a.service?.name ?? 'Serviço',
-                                            style: GoogleFonts
-                                                .bricolageGrotesque(
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 14,
-                                              color: AppTheme.textPrimary,
+                                          Expanded(
+                                            child: Text(
+                                              a.service?.name ?? 'Serviço',
+                                              style: GoogleFonts
+                                                  .bricolageGrotesque(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 14,
+                                                color: AppTheme.textPrimary,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
-                                          const SizedBox(height: 4),
-                                          Row(
-                                            children: [
-                                              const Icon(Icons.pets_outlined,
-                                                  size: 12,
-                                                  color: AppTheme.textMuted),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                a.pet?.name ?? 'Pet',
-                                                style: const TextStyle(
-                                                  color: AppTheme.textMuted,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 10),
-                                              const Icon(
-                                                  Icons.access_time_outlined,
-                                                  size: 12,
-                                                  color: AppTheme.textMuted),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                _fmt(a.scheduledAt),
-                                                style: const TextStyle(
-                                                  color: AppTheme.textMuted,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                            ],
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '${_fmtDate(a.scheduledAt)} · ${_fmtTime(a.scheduledAt)}',
+                                            style: GoogleFonts.dmMono(
+                                              color: AppTheme.textMuted,
+                                              fontSize: 11,
+                                            ),
                                           ),
                                         ],
                                       ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 5),
-                                      decoration: BoxDecoration(
-                                        color: color.withAlpha(30),
-                                        border: Border.all(
-                                            color: color.withAlpha(70)),
-                                        borderRadius:
-                                            BorderRadius.circular(8),
+                                      const SizedBox(height: 10),
+                                      const TicketDivider(),
+                                      const SizedBox(height: 10),
+                                      // Stub: pet + status
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.pets_outlined,
+                                              size: 12,
+                                              color: AppTheme.textMuted),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            a.pet?.name ?? 'Pet',
+                                            style: const TextStyle(
+                                              color: AppTheme.textMuted,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          const Spacer(),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 9, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: color.withAlpha(28),
+                                              border: Border.all(
+                                                  color: color.withAlpha(65)),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  statusLabel(a.status),
+                                                  style: GoogleFonts.outfit(
+                                                    color: color,
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 5),
+                                                Icon(
+                                                  Icons.content_cut,
+                                                  size: 10,
+                                                  color: color.withAlpha(140),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      child: Text(
-                                        statusLabel(a.status),
-                                        style: GoogleFonts.outfit(
-                                          color: color,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/pet.dart';
@@ -32,7 +33,7 @@ class _PetsScreenState extends State<PetsScreen> {
       isScrollControlled: true,
       backgroundColor: AppTheme.surface2,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => Padding(
         padding: EdgeInsets.fromLTRB(
@@ -44,22 +45,45 @@ class _PetsScreenState extends State<PetsScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Sheet handle
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: AppTheme.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
                 Text(
                   isEdit ? 'Editar Pet' : 'Novo Pet',
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w700),
+                  style: GoogleFonts.bricolageGrotesque(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textPrimary,
+                  ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
                 TextFormField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'NOME DO PET'),
+                  style: const TextStyle(color: AppTheme.textPrimary),
+                  decoration: const InputDecoration(
+                    labelText: 'Nome do pet',
+                    prefixIcon: Icon(Icons.pets, size: 18),
+                  ),
                   validator: (v) =>
                       v == null || v.isEmpty ? 'Informe o nome' : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: breedCtrl,
-                  decoration: const InputDecoration(labelText: 'RAÇA'),
+                  style: const TextStyle(color: AppTheme.textPrimary),
+                  decoration: const InputDecoration(
+                    labelText: 'Raça',
+                    prefixIcon: Icon(Icons.info_outline, size: 18),
+                  ),
                   validator: (v) =>
                       v == null || v.isEmpty ? 'Informe a raça' : null,
                 ),
@@ -67,22 +91,24 @@ class _PetsScreenState extends State<PetsScreen> {
                 DropdownButtonFormField<String>(
                   value: size,
                   dropdownColor: AppTheme.surface2,
-                  decoration: const InputDecoration(labelText: 'PORTE'),
+                  style: const TextStyle(color: AppTheme.textPrimary),
+                  decoration: const InputDecoration(labelText: 'Porte'),
                   items: ['PEQUENO', 'MEDIO', 'GRANDE']
-                      .map((s) =>
-                          DropdownMenuItem(value: s, child: Text(s)))
+                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                       .toList(),
                   onChanged: (v) => setS(() => size = v ?? size),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: notesCtrl,
+                  style: const TextStyle(color: AppTheme.textPrimary),
                   decoration: const InputDecoration(
-                    labelText: 'OBSERVAÇÕES (OPCIONAL)',
+                    labelText: 'Observações (opcional)',
                     hintText: 'Ex: alérgico a...',
+                    prefixIcon: Icon(Icons.notes, size: 18),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 22),
                 ElevatedButton(
                   onPressed: () async {
                     if (!form.currentState!.validate()) return;
@@ -116,6 +142,15 @@ class _PetsScreenState extends State<PetsScreen> {
     );
   }
 
+  String _sizeLabel(String size) {
+    switch (size) {
+      case 'PEQUENO': return 'Pequeno';
+      case 'MEDIO':   return 'Médio';
+      case 'GRANDE':  return 'Grande';
+      default:        return size;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -125,6 +160,7 @@ class _PetsScreenState extends State<PetsScreen> {
           IconButton(
             icon: const Icon(Icons.add, color: AppTheme.accent),
             onPressed: () => _showPetSheet(),
+            tooltip: 'Adicionar pet',
           ),
         ],
       ),
@@ -140,16 +176,38 @@ class _PetsScreenState extends State<PetsScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('🐶', style: TextStyle(fontSize: 48)),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Nenhum pet cadastrado.',
-                    style: TextStyle(color: AppTheme.textMuted),
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: AppTheme.accent.withAlpha(18),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.pets,
+                        size: 36, color: AppTheme.accent),
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
+                  Text(
+                    'Nenhum pet cadastrado.',
+                    style: GoogleFonts.bricolageGrotesque(
+                      color: AppTheme.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Adicione seu primeiro pet abaixo.',
+                    style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
                     onPressed: () => _showPetSheet(),
-                    child: const Text('+ Adicionar pet'),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Adicionar pet'),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(180, 48),
+                    ),
                   ),
                 ],
               ),
@@ -168,7 +226,7 @@ class _PetsScreenState extends State<PetsScreen> {
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 20),
                   decoration: BoxDecoration(
-                    color: AppTheme.statusCancelado.withAlpha(40),
+                    color: AppTheme.statusCancelado.withAlpha(35),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Icon(Icons.delete_outline,
@@ -205,18 +263,21 @@ class _PetsScreenState extends State<PetsScreen> {
                     color: AppTheme.surface2,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: AppTheme.border),
+                    boxShadow: AppTheme.cardShadow,
                   ),
                   child: Row(
                     children: [
                       Container(
-                        width: 44,
-                        height: 44,
+                        width: 48,
+                        height: 48,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF3B82F6).withAlpha(40),
-                          borderRadius: BorderRadius.circular(10),
+                          color: AppTheme.accent.withAlpha(18),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Center(
-                          child: Text('🐕', style: TextStyle(fontSize: 22)),
+                        child: const Icon(
+                          Icons.pets,
+                          size: 24,
+                          color: AppTheme.accent,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -226,26 +287,52 @@ class _PetsScreenState extends State<PetsScreen> {
                           children: [
                             Text(
                               p.name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
+                              style: GoogleFonts.bricolageGrotesque(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                                color: AppTheme.textPrimary,
                               ),
                             ),
-                            Text(
-                              '${p.breed} · ${p.size}',
-                              style: const TextStyle(
-                                color: AppTheme.textMuted,
-                                fontSize: 11,
-                              ),
+                            const SizedBox(height: 3),
+                            Row(
+                              children: [
+                                Text(
+                                  p.breed,
+                                  style: const TextStyle(
+                                    color: AppTheme.textMuted,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.surface3,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    _sizeLabel(p.size),
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 10,
+                                      color: AppTheme.textMuted,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            if (p.notes != null && p.notes!.isNotEmpty)
+                            if (p.notes != null && p.notes!.isNotEmpty) ...[
+                              const SizedBox(height: 2),
                               Text(
                                 p.notes!,
                                 style: const TextStyle(
                                   color: AppTheme.textMuted,
                                   fontSize: 11,
                                 ),
+                                overflow: TextOverflow.ellipsis,
                               ),
+                            ],
                           ],
                         ),
                       ),

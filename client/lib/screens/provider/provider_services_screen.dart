@@ -29,6 +29,7 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
+        backgroundColor: AppTheme.surface2,
         title: const Text('Remover serviço'),
         content: Text('Remover "${service.name}"?'),
         actions: [
@@ -38,7 +39,7 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(
+            child: const Text(
               'Remover',
               style: TextStyle(color: AppTheme.statusCancelado),
             ),
@@ -53,8 +54,10 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(ok ? 'Serviço removido.' : (notifier.error ?? 'Erro ao remover')),
-          backgroundColor: ok ? AppTheme.statusConfirmado : AppTheme.statusCancelado,
+          content: Text(
+              ok ? 'Serviço removido.' : (notifier.error ?? 'Erro ao remover')),
+          backgroundColor:
+              ok ? AppTheme.statusConfirmado : AppTheme.statusCancelado,
         ),
       );
     }
@@ -67,6 +70,7 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/provider/services/new'),
         backgroundColor: AppTheme.accent,
+        foregroundColor: Colors.white,
         child: const Icon(Icons.add),
       ),
       body: Consumer<ServicesNotifier>(
@@ -80,13 +84,38 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
             return RefreshIndicator(
               onRefresh: () => notifier.loadMine(AuthStorage().userId ?? ''),
               child: ListView(
-                children: const [
-                  SizedBox(height: 120),
+                children: [
+                  const SizedBox(height: 120),
                   Center(
-                    child: Text(
-                      'Nenhum serviço cadastrado.\nToque em + para adicionar.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: AppTheme.textMuted),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            color: AppTheme.accent.withAlpha(18),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.content_cut_outlined,
+                              size: 28, color: AppTheme.accent),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Nenhum serviço cadastrado.',
+                          style: GoogleFonts.bricolageGrotesque(
+                            color: AppTheme.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Toque em + para adicionar.',
+                          style: TextStyle(
+                              color: AppTheme.textMuted, fontSize: 12),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -96,7 +125,7 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
           return RefreshIndicator(
             onRefresh: () => notifier.loadMine(AuthStorage().userId ?? ''),
             child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 80),
               itemCount: notifier.myServices.length,
               itemBuilder: (_, i) {
                 final s = notifier.myServices[i];
@@ -110,13 +139,22 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                   background: Container(
                     alignment: Alignment.centerRight,
                     padding: const EdgeInsets.only(right: 20),
-                    color: AppTheme.statusCancelado,
-                    child: const Icon(Icons.delete, color: Colors.white),
+                    decoration: BoxDecoration(
+                      color: AppTheme.statusCancelado.withAlpha(35),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(Icons.delete_outline,
+                        color: AppTheme.statusCancelado),
                   ),
-                  child: _ServiceCard(
-                    service: s,
-                    onEdit: () => context.push('/provider/services/${s.id}/edit', extra: s),
-                    onDelete: () => _confirmDelete(s),
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _ServiceCard(
+                      service: s,
+                      onEdit: () => context.push(
+                          '/provider/services/${s.id}/edit',
+                          extra: s),
+                      onDelete: () => _confirmDelete(s),
+                    ),
                   ),
                 );
               },
@@ -142,71 +180,97 @@ class _ServiceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = service;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppTheme.surface2,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.border),
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surface2,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: AppTheme.cardShadow,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
         child: Row(
           children: [
+            // Left accent strip
+            Container(
+              width: 3,
+              height: 84,
+              color: AppTheme.accent,
+            ),
+            const SizedBox(width: 14),
+            // Icon
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppTheme.accent.withAlpha(18),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.content_cut_outlined,
+                color: AppTheme.accent,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    s.name,
-                    style: GoogleFonts.bricolageGrotesque(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    s.description,
-                    style: const TextStyle(
-                      color: AppTheme.textMuted,
-                      fontSize: 12,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Text(
-                        'R\$ ${s.price.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          color: AppTheme.accent,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      s.name,
+                      style: GoogleFonts.bricolageGrotesque(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimary,
                       ),
-                      const SizedBox(width: 12),
-                      Text(
-                        '${s.durationMinutes} min',
-                        style: const TextStyle(
-                          color: AppTheme.textMuted,
-                          fontSize: 12,
-                        ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      s.description,
+                      style: const TextStyle(
+                        color: AppTheme.textMuted,
+                        fontSize: 12,
                       ),
-                    ],
-                  ),
-                ],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        Text(
+                          'R\$${s.price.toStringAsFixed(0)}',
+                          style: GoogleFonts.dmMono(
+                            color: AppTheme.accent,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          '${s.durationMinutes} min',
+                          style: const TextStyle(
+                            color: AppTheme.textMuted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
             Column(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  icon: const Icon(Icons.edit_outlined, size: 18),
                   onPressed: onEdit,
                   color: AppTheme.textMuted,
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 20),
+                  icon: const Icon(Icons.delete_outline, size: 18),
                   onPressed: onDelete,
                   color: AppTheme.statusCancelado,
                 ),

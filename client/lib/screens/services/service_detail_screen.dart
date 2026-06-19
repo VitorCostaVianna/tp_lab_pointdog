@@ -60,83 +60,78 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                           padding: EdgeInsets.zero,
                           alignment: Alignment.centerLeft,
                         ),
-                        const SizedBox(height: 16),
-                        Container(
-                          width: 64,
-                          height: 64,
-                          decoration: BoxDecoration(
-                            gradient: AppTheme.accentGradient,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.accent.withAlpha(70),
-                                blurRadius: 20,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.content_cut,
-                            color: Colors.white,
-                            size: 28,
+                        const SizedBox(height: 20),
+                        Text(
+                          'SERVIÇO',
+                          style: GoogleFonts.outfit(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.accent,
+                            letterSpacing: 1.5,
                           ),
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 6),
                         Text(
                           s.name,
                           style: GoogleFonts.bricolageGrotesque(
-                            fontSize: 24,
+                            fontSize: 26,
                             fontWeight: FontWeight.w800,
                             color: AppTheme.textPrimary,
+                            letterSpacing: -0.5,
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 14),
                         Row(
                           children: [
+                            // Price badge
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
+                                  horizontal: 14, vertical: 8),
                               decoration: BoxDecoration(
-                                color: AppTheme.accentAmber.withAlpha(25),
+                                color: AppTheme.accent.withAlpha(20),
                                 border: Border.all(
-                                    color: AppTheme.accentAmber.withAlpha(60)),
+                                    color: AppTheme.accent.withAlpha(60)),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
                                 children: [
                                   Text(
                                     'R\$ ',
                                     style: GoogleFonts.outfit(
-                                      color: AppTheme.accentAmber,
+                                      color: AppTheme.accent,
                                       fontSize: 12,
-                                      fontWeight: FontWeight.w600,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                   Text(
                                     s.price.toStringAsFixed(2),
-                                    style: GoogleFonts.bricolageGrotesque(
+                                    style: GoogleFonts.dmMono(
                                       fontSize: 20,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppTheme.accentAmber,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.accent,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
                             const SizedBox(width: 10),
+                            // Duration badge
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
+                                  horizontal: 14, vertical: 8),
                               decoration: BoxDecoration(
                                 color: AppTheme.surface3,
                                 border: Border.all(color: AppTheme.border),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   const Icon(Icons.access_time,
-                                      size: 14,
-                                      color: AppTheme.textMuted),
+                                      size: 14, color: AppTheme.textMuted),
                                   const SizedBox(width: 5),
                                   Text(
                                     '${s.durationMinutes} min',
@@ -197,7 +192,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                           style: GoogleFonts.outfit(
                             color: AppTheme.textMuted,
                             fontSize: 13,
-                            height: 1.6,
+                            height: 1.65,
                           ),
                         ),
                       ),
@@ -250,8 +245,7 @@ class _InfoRow extends StatelessWidget {
           const SizedBox(width: 10),
           Text(
             label,
-            style: const TextStyle(
-                color: AppTheme.textMuted, fontSize: 13),
+            style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
           ),
           const Spacer(),
           Text(

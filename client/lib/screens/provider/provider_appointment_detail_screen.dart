@@ -28,7 +28,8 @@ class _ProviderAppointmentDetailScreenState
   }
 
   String _fmt(DateTime dt) =>
-      '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}  ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+      '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}  '
+      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 
   void _goBack() {
     if (context.canPop()) {
@@ -79,62 +80,115 @@ class _ProviderAppointmentDetailScreenState
             );
           }
           final color = statusColor(a.status);
+
           return Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        a.service?.name ?? 'Serviço',
-                        style: GoogleFonts.bricolageGrotesque(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: color.withAlpha(35),
-                        border: Border.all(color: color.withAlpha(80)),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        a.status,
-                        style: TextStyle(
-                          color: color,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
+                // Ticket card
                 Container(
+                  width: double.infinity,
                   decoration: BoxDecoration(
                     color: AppTheme.surface2,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: AppTheme.border),
+                    boxShadow: AppTheme.cardShadow,
                   ),
-                  child: Column(
-                    children: [
-                      _row('Pet', a.pet?.name ?? a.petId),
-                      _row('Data', _fmt(a.scheduledAt)),
-                      _row('Cliente', a.clientId),
-                      if (a.service != null)
-                        _row('Valor',
-                            'R\$ ${a.service!.price.toStringAsFixed(2)}'),
-                      if (a.notes != null && a.notes!.isNotEmpty)
-                        _row('Observações', a.notes!),
-                    ],
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(height: 3, color: color),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      a.service?.name ?? 'Serviço',
+                                      style: GoogleFonts.bricolageGrotesque(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppTheme.textPrimary,
+                                        letterSpacing: -0.3,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: color.withAlpha(30),
+                                      border: Border.all(
+                                          color: color.withAlpha(75)),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      statusLabel(a.status),
+                                      style: GoogleFonts.outfit(
+                                        color: color,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (a.service != null) ...[
+                                const SizedBox(height: 6),
+                                Text(
+                                  'R\$ ${a.service!.price.toStringAsFixed(2)}',
+                                  style: GoogleFonts.dmMono(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.accent,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 18),
+                          child: TicketDivider(),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+                          child: Column(
+                            children: [
+                              _DetailRow(
+                                  label: 'Pet',
+                                  value: a.pet?.name ?? a.petId),
+                              const SizedBox(height: 10),
+                              _DetailRow(
+                                label: 'Data',
+                                value: _fmt(a.scheduledAt),
+                                mono: true,
+                              ),
+                              const SizedBox(height: 10),
+                              _DetailRow(
+                                  label: 'Cliente', value: a.clientId),
+                              if (a.notes != null &&
+                                  a.notes!.isNotEmpty) ...[
+                                const SizedBox(height: 10),
+                                _DetailRow(
+                                    label: 'Observações', value: a.notes!),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
+
                 const Spacer(),
                 ..._actionButtons(a),
               ],
@@ -157,7 +211,7 @@ class _ProviderAppointmentDetailScreenState
               'Solicitação aceita',
               AppTheme.statusConfirmado,
             ),
-            child: const Text('✓  Aceitar'),
+            child: const Text('Aceitar'),
           ),
         ),
         const SizedBox(height: 10),
@@ -177,7 +231,7 @@ class _ProviderAppointmentDetailScreenState
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('✕  Recusar'),
+            child: const Text('Recusar'),
           ),
         ),
       ];
@@ -192,7 +246,7 @@ class _ProviderAppointmentDetailScreenState
               'Agendamento concluído',
               AppTheme.statusConcluido,
             ),
-            child: const Text('✓  Concluir'),
+            child: const Text('Concluir'),
           ),
         ),
         const SizedBox(height: 10),
@@ -212,37 +266,53 @@ class _ProviderAppointmentDetailScreenState
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('✕  Cancelar'),
+            child: const Text('Cancelar'),
           ),
         ),
       ];
     }
     return const [];
   }
+}
 
-  Widget _row(String label, String value) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                color: AppTheme.textMuted,
-                fontSize: 12,
-              ),
-            ),
-            Flexible(
-              child: Text(
-                value,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-                textAlign: TextAlign.end,
-              ),
-            ),
-          ],
+class _DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool mono;
+
+  const _DetailRow({
+    required this.label,
+    required this.value,
+    this.mono = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
         ),
-      );
+        Flexible(
+          child: Text(
+            value,
+            style: mono
+                ? GoogleFonts.dmMono(
+                    fontSize: 12,
+                    color: AppTheme.textPrimary,
+                    fontWeight: FontWeight.w500,
+                  )
+                : const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: AppTheme.textPrimary,
+                  ),
+            textAlign: TextAlign.end,
+          ),
+        ),
+      ],
+    );
+  }
 }

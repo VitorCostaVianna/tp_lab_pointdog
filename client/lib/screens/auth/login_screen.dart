@@ -43,68 +43,86 @@ class _LoginScreenState extends State<LoginScreen> {
     final loading = context.select<AuthNotifier, bool>(
       (n) => n.status == AuthStatus.loading,
     );
+    final screenH = MediaQuery.of(context).size.height;
+
     return Scaffold(
+      backgroundColor: AppTheme.background,
       body: Stack(
         children: [
-          // Gradient background (top portion)
+          // Warm gradient hero area
           Container(
-            height: MediaQuery.of(context).size.height * 0.42,
+            height: screenH * 0.48,
             decoration: const BoxDecoration(gradient: AppTheme.heroGradient),
           ),
+
           SafeArea(
             child: Column(
               children: [
                 // Hero section
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 36, 0, 28),
+                SizedBox(
+                  height: screenH * 0.42,
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // Paw icon with golden glow ring
                       Container(
-                        width: 76,
-                        height: 76,
+                        width: 96,
+                        height: 96,
                         decoration: BoxDecoration(
-                          gradient: AppTheme.accentGradient,
-                          borderRadius: BorderRadius.circular(24),
+                          color: AppTheme.surface2,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppTheme.accent.withAlpha(100),
+                            width: 1.5,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.accent.withAlpha(90),
-                              blurRadius: 24,
-                              offset: const Offset(0, 8),
+                              color: AppTheme.accent.withAlpha(70),
+                              blurRadius: 40,
+                              spreadRadius: 2,
                             ),
                           ],
                         ),
-                        child: const Center(
-                          child: Text('🐾', style: TextStyle(fontSize: 36)),
+                        child: const Icon(
+                          Icons.pets,
+                          size: 48,
+                          color: AppTheme.accent,
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 18),
                       Text(
                         'PointDog',
                         style: GoogleFonts.bricolageGrotesque(
-                          fontSize: 30,
+                          fontSize: 36,
                           fontWeight: FontWeight.w800,
                           color: AppTheme.textPrimary,
+                          letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
-                        'Agendamento para seu pet',
+                        'Seu pet, bem cuidado.',
                         style: GoogleFonts.outfit(
-                          fontSize: 13,
+                          fontSize: 14,
                           color: AppTheme.textMuted,
+                          letterSpacing: 0.2,
                         ),
                       ),
                     ],
                   ),
                 ),
+
                 // Form card
                 Expanded(
                   child: Container(
                     width: double.infinity,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: AppTheme.surface,
-                      borderRadius: BorderRadius.vertical(
+                      borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(32),
+                      ),
+                      border: Border(
+                        top: BorderSide(color: AppTheme.border),
                       ),
                     ),
                     child: SingleChildScrollView(
@@ -152,10 +170,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               decoration: InputDecoration(
                                 labelText: 'Senha',
                                 hintText: '••••••',
-                                prefixIcon: const Icon(
-                                  Icons.lock_outline,
-                                  size: 20,
-                                ),
+                                prefixIcon: const Icon(Icons.lock_outline, size: 20),
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _obscure

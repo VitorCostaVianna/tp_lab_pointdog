@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/pet.dart';
@@ -91,48 +92,83 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
     }
   }
 
-  String _formatDate(DateTime dt) =>
-      '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}  ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  String _formatDate(DateTime dt) {
+    const months = [
+      'jan', 'fev', 'mar', 'abr', 'mai', 'jun',
+      'jul', 'ago', 'set', 'out', 'nov', 'dez',
+    ];
+    return '${dt.day} ${months[dt.month - 1]} ${dt.year}  '
+        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Novo Agendamento')),
       body: Consumer<PetsNotifier>(
-        builder: (_, petsNotifier, __) => Padding(
+        builder: (_, petsNotifier, __) => SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Service summary card
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.accent.withAlpha(25),
-                  border:
-                      Border.all(color: AppTheme.accent.withAlpha(80)),
-                  borderRadius: BorderRadius.circular(20),
+                  color: AppTheme.surface2,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.accent.withAlpha(60)),
                 ),
-                child: Text(
-                  '✂️  ${widget.service.name} · R\$${widget.service.price.toStringAsFixed(0)}',
-                  style: const TextStyle(
-                    color: AppTheme.accent,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppTheme.accent.withAlpha(18),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.pets,
+                          color: AppTheme.accent, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.service.name,
+                            style: GoogleFonts.bricolageGrotesque(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            '${widget.service.durationMinutes} min · ${widget.service.providerName ?? "Prestador"}',
+                            style: const TextStyle(
+                              color: AppTheme.textMuted,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      'R\$${widget.service.price.toStringAsFixed(0)}',
+                      style: GoogleFonts.dmMono(
+                        color: AppTheme.accent,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
-              const Text(
-                'SEU PET',
-                style: TextStyle(
-                  color: AppTheme.textMuted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.8,
-                ),
-              ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 24),
+
+              _SectionLabel('Seu Pet'),
+              const SizedBox(height: 8),
               petsNotifier.loading
                   ? const LinearProgressIndicator(color: AppTheme.accent)
                   : DropdownButtonFormField<Pet>(
@@ -142,63 +178,62 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
                         style: TextStyle(color: AppTheme.textMuted),
                       ),
                       dropdownColor: AppTheme.surface2,
+                      style: const TextStyle(
+                          color: AppTheme.textPrimary, fontSize: 14),
                       decoration: const InputDecoration(),
                       items: petsNotifier.pets
                           .map((p) => DropdownMenuItem(
                                 value: p,
-                                child: Text(
-                                  '🐶 ${p.name} — ${p.breed}',
-                                  style: const TextStyle(fontSize: 13),
-                                ),
+                                child: Text('${p.name} — ${p.breed}'),
                               ))
                           .toList(),
                       onChanged: (p) => setState(() => _selectedPet = p),
                     ),
-              const SizedBox(height: 16),
-              const Text(
-                'DATA E HORA',
-                style: TextStyle(
-                  color: AppTheme.textMuted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.8,
-                ),
-              ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 20),
+
+              _SectionLabel('Data e Hora'),
+              const SizedBox(height: 8),
               InkWell(
                 onTap: _pickDate,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(14),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 14),
+                      horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
                     color: AppTheme.surface2,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: AppTheme.border),
                   ),
                   child: Row(
                     children: [
                       const Icon(Icons.calendar_today_outlined,
-                          size: 16, color: AppTheme.textMuted),
-                      const SizedBox(width: 8),
+                          size: 18, color: AppTheme.accent),
+                      const SizedBox(width: 10),
                       Text(
                         _formatDate(_scheduledAt),
-                        style: const TextStyle(fontSize: 13),
+                        style: GoogleFonts.dmMono(
+                          fontSize: 13,
+                          color: AppTheme.textPrimary,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+
+              _SectionLabel('Observações (opcional)'),
+              const SizedBox(height: 8),
               TextField(
                 controller: _notesCtrl,
                 maxLines: 3,
+                style: const TextStyle(color: AppTheme.textPrimary),
                 decoration: const InputDecoration(
-                  labelText: 'OBSERVAÇÕES (OPCIONAL)',
                   hintText: 'Ex: trazer comedouro, alérgico a...',
                 ),
               ),
-              const Spacer(),
+              const SizedBox(height: 32),
+
               _submitting
                   ? const Center(
                       child: CircularProgressIndicator(
@@ -210,6 +245,24 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text.toUpperCase(),
+      style: GoogleFonts.outfit(
+        color: AppTheme.textMuted,
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.8,
       ),
     );
   }

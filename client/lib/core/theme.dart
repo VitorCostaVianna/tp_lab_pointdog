@@ -2,38 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  static const Color background  = Color(0xFF0D0F14);
-  static const Color surface     = Color(0xFF161922);
-  static const Color surface2    = Color(0xFF1E2330);
-  static const Color surface3    = Color(0xFF252C3D);
-  static const Color accent      = Color(0xFFFF6B35);
-  static const Color accentAmber = Color(0xFFFFB347);
-  static const Color textPrimary = Color(0xFFF0F2F5);
-  static const Color textMuted   = Color(0xFF6B7280);
-  static const Color border      = Color(0x18FFFFFF);
+  static const Color background  = Color(0xFF0C0A07);
+  static const Color surface     = Color(0xFF181310);
+  static const Color surface2    = Color(0xFF221A14);
+  static const Color surface3    = Color(0xFF2E2218);
+  static const Color accent      = Color(0xFFD4943A);
+  static const Color accentLight = Color(0xFFE8C17A);
+  static const Color textPrimary = Color(0xFFF2E8D5);
+  static const Color textMuted   = Color(0xFF8B7355);
+  static const Color border      = Color(0x12FFF0D0);
 
-  static const Color statusPendente  = Color(0xFFF59E0B);
-  static const Color statusConfirmado= Color(0xFF22C55E);
-  static const Color statusCancelado = Color(0xFFEF4444);
-  static const Color statusConcluido = Color(0xFF3B82F6);
+  static const Color statusPendente   = Color(0xFFF59E0B);
+  static const Color statusConfirmado = Color(0xFF22C55E);
+  static const Color statusCancelado  = Color(0xFFEF4444);
+  static const Color statusConcluido  = Color(0xFF3B82F6);
 
   static const LinearGradient accentGradient = LinearGradient(
-    colors: [accent, accentAmber],
+    colors: [accent, accentLight],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient heroGradient = LinearGradient(
-    colors: [Color(0xFF1A0D06), Color(0xFF2A1A0E)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
+    colors: [Color(0xFF261808), Color(0xFF0C0A07)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
   );
 
   static List<BoxShadow> cardShadow = [
     BoxShadow(
-      color: Colors.black.withAlpha(50),
-      blurRadius: 12,
-      offset: const Offset(0, 3),
+      color: Colors.black.withAlpha(80),
+      blurRadius: 18,
+      offset: const Offset(0, 5),
     ),
   ];
 
@@ -44,7 +44,7 @@ class AppTheme {
       scaffoldBackgroundColor: background,
       colorScheme: const ColorScheme.dark(
         primary: accent,
-        secondary: accentAmber,
+        secondary: accentLight,
         surface: surface,
         surfaceContainer: surface2,
         onPrimary: Colors.white,
@@ -73,7 +73,7 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surface2,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: accent.withAlpha(45),
+        indicatorColor: accent.withAlpha(40),
         elevation: 0,
         height: 64,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
@@ -166,6 +166,36 @@ class AppTheme {
       ),
     );
   }
+}
+
+// Dashed divider used in ticket-style cards
+class TicketDivider extends StatelessWidget {
+  const TicketDivider({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 1,
+      child: CustomPaint(painter: _DashPainter()),
+    );
+  }
+}
+
+class _DashPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppTheme.border
+      ..strokeWidth = 1.2;
+    double x = 0;
+    while (x < size.width) {
+      canvas.drawLine(Offset(x, 0), Offset(x + 5, 0), paint);
+      x += 9;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashPainter old) => false;
 }
 
 Color statusColor(String status) {

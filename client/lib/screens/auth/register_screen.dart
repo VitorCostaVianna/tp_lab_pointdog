@@ -59,61 +59,70 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final loading = context.select<AuthNotifier, bool>(
       (n) => n.status == AuthStatus.loading,
     );
+    final screenH = MediaQuery.of(context).size.height;
+
     return Scaffold(
+      backgroundColor: AppTheme.background,
       body: Stack(
         children: [
           Container(
-            height: MediaQuery.of(context).size.height * 0.36,
+            height: screenH * 0.34,
             decoration: const BoxDecoration(gradient: AppTheme.heroGradient),
           ),
           SafeArea(
             child: Column(
               children: [
-                // Header
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 20),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new,
-                            size: 18, color: AppTheme.textMuted),
-                        onPressed: () => context.pop(),
-                      ),
-                      const Spacer(),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 24),
+                // Header with back button + title
+                SizedBox(
+                  height: screenH * 0.28,
                   child: Column(
                     children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back_ios_new,
+                                  size: 18, color: AppTheme.textMuted),
+                              onPressed: () => context.pop(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
                       Text(
                         'Criar conta',
                         style: GoogleFonts.bricolageGrotesque(
-                          fontSize: 26,
+                          fontSize: 28,
                           fontWeight: FontWeight.w800,
                           color: AppTheme.textPrimary,
+                          letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 5),
                       Text(
-                        'Junte-se ao PointDog',
+                        'Junte-se ao PointDog.',
                         style: GoogleFonts.outfit(
-                          fontSize: 13,
+                          fontSize: 14,
                           color: AppTheme.textMuted,
                         ),
                       ),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
+
                 // Form card
                 Expanded(
                   child: Container(
                     width: double.infinity,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: AppTheme.surface,
-                      borderRadius: BorderRadius.vertical(
+                      borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(32),
+                      ),
+                      border: Border(
+                        top: BorderSide(color: AppTheme.border),
                       ),
                     ),
                     child: SingleChildScrollView(
@@ -125,8 +134,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           children: [
                             TextFormField(
                               controller: _nameCtrl,
-                              style: const TextStyle(
-                                  color: AppTheme.textPrimary),
+                              style: const TextStyle(color: AppTheme.textPrimary),
                               decoration: const InputDecoration(
                                 labelText: 'Nome completo',
                                 hintText: 'João Silva',
@@ -140,30 +148,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             TextFormField(
                               controller: _emailCtrl,
                               keyboardType: TextInputType.emailAddress,
-                              style: const TextStyle(
-                                  color: AppTheme.textPrimary),
+                              style: const TextStyle(color: AppTheme.textPrimary),
                               decoration: const InputDecoration(
                                 labelText: 'E-mail',
                                 hintText: 'seu@email.com',
-                                prefixIcon:
-                                    Icon(Icons.email_outlined, size: 20),
+                                prefixIcon: Icon(Icons.email_outlined, size: 20),
                               ),
-                              validator: (v) =>
-                                  v == null || !v.contains('@')
-                                      ? 'E-mail inválido'
-                                      : null,
+                              validator: (v) => v == null || !v.contains('@')
+                                  ? 'E-mail inválido'
+                                  : null,
                             ),
                             const SizedBox(height: 14),
                             TextFormField(
                               controller: _passwordCtrl,
                               obscureText: _obscure,
-                              style: const TextStyle(
-                                  color: AppTheme.textPrimary),
+                              style: const TextStyle(color: AppTheme.textPrimary),
                               decoration: InputDecoration(
                                 labelText: 'Senha',
                                 hintText: '••••••',
-                                prefixIcon: const Icon(Icons.lock_outline,
-                                    size: 20),
+                                prefixIcon: const Icon(Icons.lock_outline, size: 20),
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _obscure
@@ -182,33 +185,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                             const SizedBox(height: 24),
                             Text(
-                              'Tipo de conta',
+                              'TIPO DE CONTA',
                               style: GoogleFonts.outfit(
                                 color: AppTheme.textMuted,
-                                fontSize: 12,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
+                                letterSpacing: 0.8,
                               ),
                             ),
                             const SizedBox(height: 10),
                             Row(
                               children: [
                                 _RoleCard(
-                                  icon: '🐶',
+                                  icon: Icons.pets,
                                   label: 'Cliente',
                                   subtitle: 'Agende serviços',
                                   selected: _role == 'CLIENTE',
-                                  onTap: () =>
-                                      setState(() => _role = 'CLIENTE'),
+                                  onTap: () => setState(() => _role = 'CLIENTE'),
                                 ),
                                 const SizedBox(width: 12),
                                 _RoleCard(
-                                  icon: '🧰',
+                                  icon: Icons.content_cut_outlined,
                                   label: 'Prestador',
                                   subtitle: 'Ofereça serviços',
                                   selected: _role == 'PRESTADOR',
-                                  onTap: () =>
-                                      setState(() => _role = 'PRESTADOR'),
+                                  onTap: () => setState(() => _role = 'PRESTADOR'),
                                 ),
                               ],
                             ),
@@ -272,7 +273,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 }
 
 class _RoleCard extends StatelessWidget {
-  final String icon;
+  final IconData icon;
   final String label;
   final String subtitle;
   final bool selected;
@@ -296,7 +297,7 @@ class _RoleCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
           decoration: BoxDecoration(
             color: selected
-                ? AppTheme.accent.withAlpha(20)
+                ? AppTheme.accent.withAlpha(18)
                 : AppTheme.surface2,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
@@ -306,16 +307,18 @@ class _RoleCard extends StatelessWidget {
           ),
           child: Column(
             children: [
-              Text(icon, style: const TextStyle(fontSize: 28)),
-              const SizedBox(height: 6),
+              Icon(
+                icon,
+                size: 28,
+                color: selected ? AppTheme.accent : AppTheme.textMuted,
+              ),
+              const SizedBox(height: 8),
               Text(
                 label,
                 style: GoogleFonts.bricolageGrotesque(
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
-                  color: selected
-                      ? AppTheme.accent
-                      : AppTheme.textPrimary,
+                  color: selected ? AppTheme.accent : AppTheme.textPrimary,
                 ),
               ),
               Text(
