@@ -6,6 +6,7 @@ import '../../core/auth/auth_storage.dart';
 import '../../core/theme.dart';
 import '../../models/service.dart';
 import '../../providers/services_notifier.dart';
+import '../../providers/auth_notifier.dart';
 
 class ProviderServicesScreen extends StatefulWidget {
   const ProviderServicesScreen({super.key});
@@ -66,7 +67,16 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Meus Serviços')),
+      appBar: AppBar(
+        title: const Text('Meus Serviços'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sair',
+            onPressed: () => context.read<AuthNotifier>().logout(),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/provider/services/new'),
         backgroundColor: AppTheme.accent,

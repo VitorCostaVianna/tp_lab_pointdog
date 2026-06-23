@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../providers/appointments_notifier.dart';
+import '../../providers/auth_notifier.dart';
 import 'provider_appointment_card.dart';
 
 class ProviderPendingScreen extends StatefulWidget {
@@ -23,7 +24,16 @@ class _ProviderPendingScreenState extends State<ProviderPendingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Solicitações Pendentes')),
+      appBar: AppBar(
+        title: const Text('Solicitações Pendentes'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sair',
+            onPressed: () => context.read<AuthNotifier>().logout(),
+          ),
+        ],
+      ),
       body: Consumer<AppointmentsNotifier>(
         builder: (_, notifier, __) {
           if (notifier.loading && notifier.appointments.isEmpty) {

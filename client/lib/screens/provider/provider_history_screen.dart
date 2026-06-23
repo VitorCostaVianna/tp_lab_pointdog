@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../providers/appointments_notifier.dart';
+import '../../providers/auth_notifier.dart';
 import 'provider_appointment_card.dart';
 
 class ProviderHistoryScreen extends StatefulWidget {
@@ -22,7 +23,16 @@ class _ProviderHistoryScreenState extends State<ProviderHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Histórico')),
+      appBar: AppBar(
+        title: const Text('Histórico'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sair',
+            onPressed: () => context.read<AuthNotifier>().logout(),
+          ),
+        ],
+      ),
       body: Consumer<AppointmentsNotifier>(
         builder: (_, notifier, __) {
           if (notifier.loading && notifier.appointments.isEmpty) {
