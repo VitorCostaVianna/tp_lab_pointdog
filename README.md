@@ -12,7 +12,7 @@ Plataforma de agendamento de serviços para pets (banho, tosa e similares), dese
 |--------|-------|
 | Sprint 2 — Backend + MOM | [`docs/sprint2/video_sprint2.mp4`](docs/sprint2/video_sprint2.mp4) |
 | Sprint 3 — App Cliente Flutter | [`docs/sprint3/video_sprint3.mp4`](docs/sprint3/video_sprint3.mp4) |
-| Sprint 4 — App Prestador + Fluxo Completo | *(a adicionar)* |
+| Sprint 4 — App Prestador + Fluxo Completo | [https://youtu.be/5ssTpoYluIE](https://youtu.be/5ssTpoYluIE) |
 
 ---
 

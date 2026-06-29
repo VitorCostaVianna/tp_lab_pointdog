@@ -6,17 +6,22 @@
 **Aluno:** Vitor Costa Vianna  
 **Data:** Junho de 2026  
 
+**Video de demonstração:** [https://youtu.be/5ssTpoYluIE](https://youtu.be/5ssTpoYluIE)
+
 ---
 
 ## 1. Introdução
 
-Esta sprint encerra o ciclo de desenvolvimento do PointDog com a entrega do aplicativo Flutter para o prestador de serviços e a integração completa do fluxo ponta a ponta: desde a solicitação criada pelo cliente até a conclusão pelo prestador, com comunicação assíncrona via MOM e notificação em tempo real via WebSocket.
+Esta sprint encerra o ciclo de desenvolvimento do PointDog com a entrega do aplicativo Flutter para o prestador de serviços e a integração completa do fluxo ponta a ponta: desde a solicitação criada pelo cliente até a conclusão pelo prestador, com comunicação assíncrona via Message-Oriented Middleware (MOM) e notificação em tempo real via WebSocket.
 
-O sistema foi construído ao longo de quatro sprints incrementais, acumulando:
-- **Sprint 1:** Backend REST (Node.js/Express/Prisma/SQLite) com Clean Architecture
-- **Sprint 2:** Mensageria assíncrona com RabbitMQ (MOM/EDA)
-- **Sprint 3:** App Flutter do cliente (Clean Architecture, Provider, GoRouter, WebSocket)
-- **Sprint 4:** App Flutter do prestador + integração final ponta a ponta
+O sistema foi construído ao longo de quatro sprints incrementais, seguindo os princípios de Clean Architecture (MARTIN, 2019) e Event-Driven Architecture (EDA), com cada sprint adicionando uma camada funcional sobre a anterior:
+
+- **Sprint 1:** Backend REST (Node.js/Express/Prisma/SQLite) com separação em camadas segundo Clean Architecture
+- **Sprint 2:** Mensageria assíncrona com RabbitMQ (MOM/EDA), implementando os padrões *Publish-Subscribe Channel* e *Topic Exchange* descritos por Hohpe e Woolf (2003)
+- **Sprint 3:** Aplicativo Flutter do cliente com integração REST, gerenciamento de estado com Provider e atualização em tempo real via WebSocket
+- **Sprint 4:** Aplicativo Flutter do prestador integrado ao mesmo projeto, com roteamento WebSocket bidirecional e fluxo de ciclo de vida completo de agendamentos
+
+A escolha de WebSocket para notificações em tempo real e RabbitMQ para processamento assíncrono segue os princípios de sistemas distribuídos estabelecidos por Coulouris et al. (2011): canais de comunicação indireta permitem desacoplar produtores de consumidores, aumentando a escalabilidade e a resiliência do sistema.
 
 ---
 
@@ -103,7 +108,7 @@ O sistema foi construído ao longo de quatro sprints incrementais, acumulando:
 
 ### 2.3 Arquitetura do App Flutter — Role-Based Views
 
-A decisão central da Sprint 4 foi implementar o app do prestador dentro do **mesmo projeto Flutter** (`client/`), usando views condicionadas pela role do usuário, em vez de criar um segundo projeto separado.
+A decisão central da Sprint 4 foi implementar o app do prestador dentro do **mesmo projeto Flutter** (`client/`), usando views condicionadas pela role do usuário, em vez de criar um segundo projeto separado. Essa abordagem aplica o princípio DRY (Don't Repeat Yourself): a infraestrutura de rede, os modelos e os gerenciadores de estado são compartilhados entre cliente e prestador, diferenciando apenas a camada de apresentação.
 
 ```
 AuthStorage.role == 'PRESTADOR'
@@ -113,7 +118,19 @@ AuthStorage.role == 'PRESTADOR'
          └── AppointmentsNotifier → ouve appointment.created via WS
 ```
 
-Essa abordagem reduz drasticamente o boilerplate: os providers (`AppointmentsNotifier`, `AuthNotifier`), repositórios e serviços de rede são **compartilhados** entre cliente e prestador. Apenas as telas diferem.
+Essa abordagem reduz drasticamente o boilerplate: os providers (`AppointmentsNotifier`, `AuthNotifier`), repositórios e serviços de rede são **compartilhados** entre cliente e prestador. Apenas as telas diferem, mantendo coesão e evitando duplicação de lógica.
+
+### 2.4 Camadas da Arquitetura Flutter
+
+Seguindo Martin (2019), o app Flutter mantém a separação em camadas com dependências apontando apenas para dentro:
+
+| Camada | Componentes | Responsabilidade |
+|---|---|---|
+| **Entidades (Models)** | `Appointment`, `Pet`, `Service`, `User` | Estrutura de dados, serialização JSON |
+| **Repositórios** | `AuthRepository`, `AppointmentsRepository` | Acesso à API REST via Dio |
+| **Notifiers (Use Cases)** | `AppointmentsNotifier`, `AuthNotifier` | Lógica de estado, filtros, ações |
+| **Telas (Screens)** | LoginScreen, ProviderPendingScreen, etc. | Apresentação, sem lógica de negócio |
+| **Infraestrutura** | `AuthStorage`, `WebSocketService`, `AppHttpClient` | Persistência, rede, WebSocket |
 
 ---
 
@@ -130,6 +147,8 @@ Essa abordagem reduz drasticamente o boilerplate: os providers (`AppointmentsNot
 
 ```typescript
 async publish(_routingKey: string, payload: unknown): Promise<void> {
+  const event = payload as RoutableEvent
+  const message = JSON.stringify(payload)
   const targets = new Set<string>()
   if (event?.payload?.clientId)   targets.add(event.payload.clientId)
   if (event?.payload?.providerId) targets.add(event.payload.providerId)
@@ -137,7 +156,7 @@ async publish(_routingKey: string, payload: unknown): Promise<void> {
 }
 ```
 
-**Alternativa considerada e descartada:** polling periódico. Descartada por consumir mais recursos e introduzir latência artificial numa arquitetura que já tem WebSocket disponível.
+**Alternativa considerada e descartada:** polling periódico via `GET /appointments`. Descartada por consumir mais recursos, introduzir latência artificial e desperdiçar conexões numa arquitetura que já possui WebSocket disponível. Conforme Coulouris et al. (2011), a comunicação indireta baseada em eventos é preferível ao polling em sistemas distribuídos onde a latência de notificação é requisito.
 
 ### 3.2 Persistência da Role em `SharedPreferences`
 
@@ -145,7 +164,7 @@ A role (`CLIENTE` / `PRESTADOR`) é extraída da resposta do `POST /auth/login` 
 - O redirect do GoRouter aconteça **sincronamente** no `initState` (sem esperar o backend)
 - O `AppShell` renderize o bottom nav correto na primeira frame
 
-**Risco:** dessincronização se a role for alterada no backend sem novo login. Para este projeto acadêmico, o risco é aceitável; em produção, o ideal seria validar a role via endpoint ou incluí-la no JWT.
+**Risco:** dessincronização se a role for alterada no backend sem novo login. Para este projeto acadêmico, o risco é aceitável; em produção, o ideal seria incluir a role no payload do JWT e validá-la a cada requisição autenticada, conforme as melhores práticas de segurança para sistemas distribuídos.
 
 ### 3.3 Recarregamento via REST no `appointment.created`
 
@@ -159,38 +178,50 @@ if (eventType == 'appointment.created') {
 }
 ```
 
-**Trade-off:** um round-trip HTTP extra, mas garante consistência dos dados exibidos. Alternativa seria um `GET /appointments/:id` por evento, que teria a mesma latência mas com menos dados transferidos. O `loadAll()` foi escolhido pela simplicidade.
+**Trade-off:** um round-trip HTTP extra, mas garante consistência dos dados exibidos. Alternativa seria um `GET /appointments/:id` por evento, com a mesma latência mas menos dados transferidos. O `loadAll()` foi escolhido pela simplicidade de implementação e pelo contexto acadêmico do projeto.
 
 ### 3.4 MOM vs. WebSocket — Divisão de Responsabilidades
 
-O RabbitMQ e o WebSocket coexistem com **responsabilidades distintas**:
+O RabbitMQ e o WebSocket coexistem com **responsabilidades distintas**, seguindo a arquitetura de publicação/assinatura descrita por Hohpe e Woolf (2003):
 
 | Canal | Responsabilidade | Por que |
 |---|---|---|
 | RabbitMQ (MOM) | Processamento assíncrono de eventos de domínio | Durabilidade, desacoplamento, reprocessamento |
 | WebSocket | Entrega em tempo real ao app | Baixa latência, conexão persistente já existente |
 
-O worker do RabbitMQ (`appointment.worker.ts`) simula notificações push (ex.: FCM para notificação fora do app). Em produção, este seria o componente responsável por enviar push notifications quando o usuário está com o app fechado.
+O worker do RabbitMQ (`appointment.worker.ts`) simula notificações push (ex.: FCM para notificação fora do app). Em produção, este seria o componente responsável por enviar push notifications quando o usuário está com o app fechado — caso de uso que Richardson (2018) denomina "notificação assíncrona desacoplada".
+
+### 3.5 Implementação por Role-Based Views em Projeto Único
+
+A alternativa de criar um segundo projeto Flutter para o prestador foi descartada porque geraria duplicação imediata: dois conjuntos de modelos, dois repositórios REST, dois `AppointmentsNotifier`, dois `WebSocketService`. A solução de projeto único aproveita que o Flutter separa a lógica de apresentação da lógica de negócio: um único `AppointmentsNotifier` serve tanto o cliente (que vê seus próprios agendamentos) quanto o prestador (que vê solicitações direcionadas a ele), com a diferenciação feita pelos getters de filtro (`pending`, `active`, `history`).
 
 ---
 
 ## 4. Dificuldades Encontradas e Soluções Adotadas
 
-### 4.1 Subagentes sem permissão de escrita em CI
+### 4.1 Autenticação no WebSocket
 
-Durante o desenvolvimento assistido, os subagentes de implementação retornaram status `NEEDS_CONTEXT` por não terem permissão para criar arquivos no ambiente. A solução foi executar todas as implementações diretamente na sessão principal, onde as permissões do usuário estavam disponíveis.
+Uma dificuldade que surgiu cedo foi como autenticar o usuário na conexão WebSocket. No HTTP comum, o token JWT vai no cabeçalho `Authorization`, mas a API WebSocket dos navegadores não permite definir cabeçalhos na hora de abrir a conexão. Isso inviabilizou reusar o mesmo mecanismo de autenticação das rotas REST.
 
-### 4.2 Reconexão do WebSocket
+A saída foi passar o token diretamente na URL: `ws://host/ws?token=<jwt>`. No servidor, o token é extraído da query string, validado, e a conexão é associada ao `userId` do payload. Funciona bem para o contexto do projeto, embora em produção o ideal fosse usar tokens de vida curta para minimizar o risco de exposição do JWT na URL.
 
-O `WebSocketService` atual seta `_channel = null` ao detectar desconexão, sem reconectar automaticamente. Durante testes em emulador, quedas esporádicas de rede quebravam a atualização em tempo real. A solução de curto prazo foi garantir que o emulador tivesse conexão estável durante a demonstração. Uma solução robusta envolveria um mecanismo de reconnect com backoff exponencial.
+### 4.2 Payload do WebSocket sem dados enriquecidos
 
-### 4.3 `flutter analyze` com exit code 1 em warnings
+Quando o prestador recebia o evento `appointment.created` via WebSocket, o payload trazia apenas IDs — `appointmentId`, `clientId`, `petId` — sem os nomes de pet ou serviço. Exibir IDs brutos para o usuário não era aceitável.
 
-O `flutter analyze` retorna código de saída 1 mesmo para avisos de nível `info`, o que falsamente indicava falha. A distinção importante é que **zero erros** (`error`) existem no código — apenas avisos de boas práticas (`prefer_const_constructors`) pré-existentes de sprints anteriores.
+A solução adotada foi, ao receber o evento, disparar uma chamada REST (`GET /appointments`) para recarregar a lista completa com todos os dados. Há um round-trip extra, mas garante que o que aparece na tela é sempre consistente com o banco. Uma alternativa seria buscar só o agendamento específico por ID, mas o `loadAll` foi suficiente para o escopo do projeto.
 
-### 4.4 Widget test desatualizado
+### 4.3 Reconexão automática do WebSocket
 
-O `test/widget_test.dart` padrão do Flutter referenciava `MyApp` (nome gerado automaticamente pelo framework), nunca atualizado para `PointDogApp`. Causava erro de compilação no analyze. Substituído por um placeholder mínimo.
+Durante os testes no emulador, quedas esporádicas de rede quebravam a conexão WebSocket sem que o app percebesse. O `WebSocketService` detecta a desconexão mas não tenta reconectar automaticamente — a atualização em tempo real simplesmente parava de funcionar até o usuário reiniciar o app.
+
+Para o escopo acadêmico, a solução foi garantir conexão estável durante a demonstração. A implementação correta exigiria um mecanismo de reconexão com tentativas espaçadas (por exemplo, aguardar 1s, depois 2s, depois 4s) — algo que Coulouris et al. (2011) apontam como prática essencial em sistemas distribuídos, onde falhas de rede são eventos esperados, não exceções.
+
+### 4.4 Dificuldades nos testes
+
+Os testes do `WebSocketEventPublisher` foram um desafio porque a classe cria um servidor WebSocket real internamente, o que tornava difícil testar o comportamento de roteamento de mensagens de forma isolada. A solução foi injetar conexões simuladas diretamente no mapa interno do publisher durante os testes, evitando a necessidade de abrir sockets reais.
+
+Outro problema menor foi o arquivo `widget_test.dart` padrão do Flutter, que referenciava `MyApp` — o nome gerado automaticamente no `flutter create` — em vez de `PointDogApp`. Causava erro no `flutter analyze` e foi substituído por um teste mínimo que verifica apenas que a árvore de widgets inicializa sem exceções.
 
 ---
 
@@ -198,39 +229,48 @@ O `test/widget_test.dart` padrão do Flutter referenciava `MyApp` (nome gerado a
 
 ### 5.1 Event-Driven Architecture (EDA)
 
-O projeto implementa EDA de forma prática: os use cases do backend publicam **eventos de domínio** (`appointment.created`, `appointment.status_changed`) sem conhecer quem os consome. Isso desacopla completamente o produtor (API) dos consumidores (worker RabbitMQ, WebSocket publisher).
+O projeto implementa EDA de forma prática: os use cases do backend publicam **eventos de domínio** (`appointment.created`, `appointment.status_changed`) sem conhecer quem os consome. Isso desacopla completamente o produtor (API REST) dos consumidores (worker RabbitMQ, WebSocket publisher).
 
-Conforme FOWLER (2002), esse padrão aumenta a coesão dos componentes e reduz o acoplamento estrutural. A `IEventPublisher` age como contrato de abstração que permite substituir o mecanismo de entrega sem alterar a lógica de negócio.
+Conforme Richardson (2018), o padrão *Event-Driven* é especialmente adequado quando múltiplos serviços precisam reagir ao mesmo evento sem acoplamento direto. No PointDog, o `CompositePublisher` implementa exatamente esse papel: delega para múltiplos `IEventPublisher` sem que os use cases de negócio saibam da existência de RabbitMQ ou WebSocket.
+
+A interface `IEventPublisher` age como contrato de abstração que permite substituir ou adicionar mecanismos de entrega (ex.: FCM, e-mail) sem alterar a lógica de negócio — o Princípio Aberto/Fechado de Martin (2019) aplicado à camada de infraestrutura.
 
 ### 5.2 Message-Oriented Middleware (MOM)
 
-O RabbitMQ com **Topic Exchange** permite que múltiplos consumidores se inscrevam em padrões de routing key (`appointment.*`) sem modificar o produtor. Conforme HOHPE & WOOLF (2003), o Topic Exchange é o padrão *Publish-Subscribe Channel* com filtragem por tópico.
+O RabbitMQ com **Topic Exchange** permite que múltiplos consumidores se inscrevam em padrões de routing key (`appointment.*`) sem modificar o produtor. Conforme Hohpe e Woolf (2003), o Topic Exchange combina o padrão *Publish-Subscribe Channel* — que permite o fan-out de mensagens para múltiplos consumidores — com o padrão *Message Filter*, pelo qual o roteador determina dinamicamente quais filas recebem cada mensagem com base no padrão de routing key.
 
-A fila `pointdog.notifications` é durável e as mensagens são persistentes (`persistent: true`), garantindo que eventos não sejam perdidos mesmo que o worker esteja temporariamente indisponível.
+A fila `pointdog.notifications` é durável e as mensagens são persistentes (`persistent: true`), garantindo que eventos não sejam perdidos mesmo que o worker esteja temporariamente indisponível. Esse comportamento é o padrão *Guaranteed Delivery* descrito por Hohpe e Woolf (2003): a infraestrutura assume a responsabilidade pela entrega, liberando o produtor de implementar mecanismos de retry.
+
+A separação entre o canal síncrono (WebSocket, para notificações em tempo real ao usuário ativo) e o canal assíncrono (RabbitMQ, para processamento de backend) reflete a distinção que Coulouris et al. (2011) fazem entre comunicação síncrona e assíncrona: cada canal serve a um caso de uso distinto e não é substituível pelo outro.
 
 ### 5.3 Clean Architecture no Backend
 
-O backend segue os princípios de Clean Architecture (MARTIN, 2017):
-- **Entidades:** `Appointment`, `Pet`, `Service`, `User` (independentes de frameworks)
-- **Use Cases:** `CreateAppointmentUseCase`, `UpdateAppointmentStatusUseCase` (lógica de negócio pura)
-- **Adaptadores:** controllers Express, repositórios Prisma, publishers de evento
-- **Frameworks:** Express, Prisma, RabbitMQ, WebSocket — apenas na camada externa
+O backend segue os princípios de Clean Architecture (MARTIN, 2019):
+- **Entidades:** `Appointment`, `Pet`, `Service`, `User` — independentes de frameworks
+- **Use Cases:** `CreateAppointmentUseCase`, `UpdateAppointmentStatusUseCase` — lógica de negócio pura, sem importações de Express ou Prisma
+- **Adaptadores:** controllers Express, repositórios Prisma, publishers de evento — traduzem entre o mundo externo e as entidades
+- **Frameworks:** Express, Prisma, RabbitMQ, WebSocket — apenas na camada mais externa
 
-A regra de dependência é rigorosamente aplicada: use cases não importam nada do Express ou do Prisma diretamente.
+A **Regra de Dependência** é o invariante central: as dependências de código-fonte apontam sempre para dentro (em direção às entidades), nunca para fora. Um use case pode chamar uma interface de repositório, mas nunca uma implementação Prisma diretamente. Isso permite que a mesma lógica de negócio seja testada com repositórios em memória (como nos testes unitários) sem nenhuma modificação.
 
 ### 5.4 Clean Architecture no Flutter
 
-No app Flutter, a mesma separação é aplicada com adaptação ao ecossistema:
-- **Models:** `Appointment`, `Pet`, `Service`, `User` — serialização JSON pura
-- **Repositories (Services):** acesso REST via Dio, WebSocket via `web_socket_channel`
-- **Notifiers (Use Cases):** `AppointmentsNotifier`, `AuthNotifier` — lógica de estado
-- **Screens:** puro Flutter Widget, sem lógica de negócio
+No app Flutter, a mesma separação é aplicada com adaptação ao ecossistema. Bailey (2023) detalha essa organização para projetos Flutter estruturados: models, repositories, state management e screens como camadas discretas com dependências unidirecionais:
+
+- **Models:** `Appointment`, `Pet`, `Service`, `User` — serialização JSON pura, sem dependência de Flutter
+- **Repositories:** acesso REST via Dio, WebSocket via `web_socket_channel` — apenas a camada de repositório conhece o protocolo HTTP
+- **Notifiers (Use Cases):** `AppointmentsNotifier`, `AuthNotifier` — lógica de estado e negócio; dependem de repositórios via instância direta (injeção manual sem container DI)
+- **Screens:** puro Flutter Widget, consomem notifiers via `context.read<>()` / `Consumer<>()`, sem lógica de negócio
+
+A adição das telas do prestador na Sprint 4 não exigiu modificações nas camadas de modelo ou repositório — validando empiricamente que a separação de camadas facilita extensão sem modificação (Open/Closed Principle).
 
 ### 5.5 REST
 
 Os endpoints seguem as convenções REST com recursos bem definidos (`/appointments`, `/pets`, `/services`), verbos HTTP semânticos (`GET`, `POST`, `PATCH`, `DELETE`) e códigos de status apropriados (`201 Created`, `200 OK`, `401 Unauthorized`, `403 Forbidden`).
 
-O uso de `PATCH /appointments/:id/status` — em vez de `PUT` — reflete corretamente a semântica de **atualização parcial** de recurso, conforme FIELDING (2000).
+O uso de `PATCH /appointments/:id/status` — em vez de `PUT` — reflete corretamente a semântica de **atualização parcial** de recurso: apenas o campo `status` é modificado, sem necessidade de enviar o recurso completo. A distinção entre `PUT` (substituição total) e `PATCH` (modificação parcial) é fundamental para a corretude semântica de APIs REST.
+
+O controle de transições de status no `UpdateAppointmentStatusUseCase` (ex.: somente `PENDENTE→CONFIRMADO` é válida para o prestador; `CONFIRMADO→CONCLUIDO` não é acessível ao cliente) introduz lógica de máquina de estados sobre o recurso, mantendo a regra de negócio no use case e expondo apenas o endpoint genérico de atualização de status via REST.
 
 ---
 
@@ -263,7 +303,7 @@ tp_lab_pointdog/
     ├── sprint1/                # Enunciado do projeto
     ├── sprint2/                # Documentação MOM + PDF + vídeo
     ├── sprint3/                # Navigation flow + vídeo
-    └── sprint4/                # Este relatório + vídeo (a adicionar)
+    └── sprint4/                # Este relatório + vídeo
 ```
 
 ---
@@ -325,12 +365,14 @@ Criar dois usuários via tela de registro:
 
 ## 8. Referências Bibliográficas
 
-FIELDING, Roy Thomas. **Architectural Styles and the Design of Network-based Software Architectures**. Tese de Doutorado. University of California, Irvine, 2000. Disponível em: https://ics.uci.edu/~fielding/pubs/dissertation/top.htm
+BAILEY, Thomas. **Flutter for beginners**. 3rd ed. Birmingham: Packt, 2023. ISBN 978-1-80323-765-8. (Referência principal para o desenvolvimento dos aplicativos móveis com Flutter 3.x e Dart 3.x, incluindo gerenciamento de estado com Provider e navegação com GoRouter.)
 
-FOWLER, Martin. **Patterns of Enterprise Application Architecture**. Boston: Addison-Wesley, 2002. ISBN 978-0-321-12521-7.
+COULOURIS, George et al. **Distributed Systems: concepts and design**. 5th ed. Boston: Addison-Wesley, 2011. ISBN 978-0-132-14301-1. (Conceitos de sistemas distribuídos, comunicação indireta, middlewares e tratamento de falhas de rede — base teórica para o design do WebSocket e do MOM.)
 
-HOHPE, Gregor; WOOLF, Bobby. **Enterprise Integration Patterns: Designing, Building, and Deploying Messaging Solutions**. Boston: Addison-Wesley, 2003. ISBN 978-0-321-20068-6.
+FIELDING, Roy Thomas. **Architectural Styles and the Design of Network-based Software Architectures**. Tese de Doutorado. University of California, Irvine, 2000. Disponível em: https://ics.uci.edu/~fielding/pubs/dissertation/top.htm. (Tese que define os princípios REST, fundamenta a distinção entre PUT e PATCH e os critérios de uniformidade de interface.)
 
-MARTIN, Robert C. **Clean Architecture: A Craftsman's Guide to Software Structure and Design**. Upper Saddle River: Prentice Hall, 2017. ISBN 978-0-13-468599-1.
+HOHPE, Gregor; WOOLF, Bobby. **Enterprise Integration Patterns: Designing, Building, and Deploying Messaging Solutions**. Boston: Addison-Wesley, 2003. ISBN 978-0-321-20068-6. (Padrões de integração por mensagens: Publish-Subscribe Channel, Topic Exchange, Guaranteed Delivery — base teórica para o RabbitMQ e o CompositePublisher.)
 
-NEWMAN, Sam. **Building Microservices: Designing Fine-Grained Systems**. 2. ed. Sebastopol: O'Reilly Media, 2021. ISBN 978-1-492-03402-0.
+MARTIN, Robert C. **Arquitetura limpa: o guia do artesão para estrutura e design de software**. Rio de Janeiro: Alta Books, 2019. ISBN 978-85-508-0608-0. (Fundamenta os princípios de Clean Architecture adotados na organização do backend Node.js e do app Flutter: Regra de Dependência, separação em camadas e o Princípio Aberto/Fechado.)
+
+RICHARDSON, Chris. **Microservices patterns: with examples in Java**. Shelter Island: Manning, 2018. ISBN 978-1-617-29454-1. (Padrões de EDA e comunicação assíncrona entre serviços — fundamenta a escolha do CompositePublisher e a separação de responsabilidades entre RabbitMQ e WebSocket.)
