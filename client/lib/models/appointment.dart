@@ -5,6 +5,7 @@ class Appointment {
   final String id;
   final String status;
   final String clientId;
+  final String? clientName;
   final String petId;
   final String providerId;
   final String serviceId;
@@ -17,6 +18,7 @@ class Appointment {
     required this.id,
     required this.status,
     required this.clientId,
+    this.clientName,
     required this.petId,
     required this.providerId,
     required this.serviceId,
@@ -30,6 +32,7 @@ class Appointment {
     id: json['id'] as String,
     status: json['status'] as String,
     clientId: json['clientId'] as String,
+    clientName: (json['client'] as Map<String, dynamic>?)?['name'] as String?,
     petId: json['petId'] as String,
     providerId: json['providerId'] as String,
     serviceId: json['serviceId'] as String,
@@ -45,8 +48,9 @@ class Appointment {
 
   Appointment copyWith({String? status}) => Appointment(
     id: id, status: status ?? this.status, clientId: clientId,
-    petId: petId, providerId: providerId, serviceId: serviceId,
-    scheduledAt: scheduledAt, notes: notes, pet: pet, service: service,
+    clientName: clientName, petId: petId, providerId: providerId,
+    serviceId: serviceId, scheduledAt: scheduledAt, notes: notes,
+    pet: pet, service: service,
   );
 
   bool get canCancel => status == 'PENDENTE' || status == 'CONFIRMADO';

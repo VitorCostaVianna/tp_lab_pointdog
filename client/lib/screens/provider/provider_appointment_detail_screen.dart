@@ -174,7 +174,8 @@ class _ProviderAppointmentDetailScreenState
                               ),
                               const SizedBox(height: 10),
                               _DetailRow(
-                                  label: 'Cliente', value: a.clientId),
+                                  label: 'Cliente',
+                                  value: a.clientName ?? a.clientId),
                               if (a.notes != null &&
                                   a.notes!.isNotEmpty) ...[
                                 const SizedBox(height: 10),

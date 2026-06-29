@@ -17,7 +17,8 @@ class _ProviderPendingScreenState extends State<ProviderPendingScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AppointmentsNotifier>().loadAll();
+      final n = context.read<AppointmentsNotifier>();
+      if (n.appointments.isEmpty && !n.loading) n.loadAll();
     });
   }
 
@@ -46,12 +47,24 @@ class _ProviderPendingScreenState extends State<ProviderPendingScreen> {
             return RefreshIndicator(
               onRefresh: notifier.loadAll,
               child: ListView(
-                children: const [
-                  SizedBox(height: 120),
-                  Center(
+                children: [
+                  const SizedBox(height: 100),
+                  const Icon(Icons.inbox_outlined,
+                      size: 48, color: AppTheme.textMuted),
+                  const SizedBox(height: 16),
+                  const Center(
                     child: Text(
                       'Nenhuma solicitação pendente.',
-                      style: TextStyle(color: AppTheme.textMuted),
+                      style: TextStyle(color: AppTheme.textMuted, fontSize: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      'Aguardando clientes agendarem serviços.',
+                      style: TextStyle(
+                          color: AppTheme.textMuted.withAlpha(140),
+                          fontSize: 12),
                     ),
                   ),
                 ],

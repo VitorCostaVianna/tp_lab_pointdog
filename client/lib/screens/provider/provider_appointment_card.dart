@@ -92,11 +92,34 @@ class ProviderAppointmentCard extends StatelessWidget {
                               const Icon(Icons.pets_outlined,
                                   size: 12, color: AppTheme.textMuted),
                               const SizedBox(width: 4),
-                              Text(
-                                a.pet?.name ?? a.petId,
-                                style: const TextStyle(
-                                    color: AppTheme.textMuted, fontSize: 12),
+                              Flexible(
+                                child: Text(
+                                  a.pet?.name ?? a.petId,
+                                  style: const TextStyle(
+                                      color: AppTheme.textMuted, fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
+                              if (a.clientName != null) ...[
+                                const SizedBox(width: 6),
+                                const Text('·',
+                                    style: TextStyle(
+                                        color: AppTheme.textMuted,
+                                        fontSize: 12)),
+                                const SizedBox(width: 6),
+                                const Icon(Icons.person_outline,
+                                    size: 12, color: AppTheme.textMuted),
+                                const SizedBox(width: 3),
+                                Flexible(
+                                  child: Text(
+                                    a.clientName!,
+                                    style: const TextStyle(
+                                        color: AppTheme.textMuted,
+                                        fontSize: 12),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                               const Spacer(),
                               Container(
                                 padding: const EdgeInsets.symmetric(

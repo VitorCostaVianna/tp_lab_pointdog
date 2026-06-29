@@ -32,14 +32,24 @@ export class PrismaAppointmentRepository implements IAppointmentRepository {
   async findAllByProvider(providerId: string): Promise<Appointment[]> {
     const results = await this.prisma.appointment.findMany({
       where: { providerId },
+      include: {
+        pet: true,
+        service: true,
+        client: { select: { id: true, name: true } },
+      },
+      orderBy: { scheduledAt: 'desc' },
     })
-    return results as Appointment[]
+    return results as unknown as Appointment[]
   }
 
   async findById(id: string): Promise<Appointment | null> {
     const result = await this.prisma.appointment.findUnique({
       where: { id },
-      include: { pet: true, service: { include: { provider: { select: { id: true, name: true } } } } },
+      include: {
+        pet: true,
+        service: { include: { provider: { select: { id: true, name: true } } } },
+        client: { select: { id: true, name: true } },
+      },
     })
     return result as unknown as Appointment | null
   }
@@ -48,7 +58,12 @@ export class PrismaAppointmentRepository implements IAppointmentRepository {
     const result = await this.prisma.appointment.update({
       where: { id },
       data: { status },
+      include: {
+        pet: true,
+        service: true,
+        client: { select: { id: true, name: true } },
+      },
     })
-    return result as Appointment
+    return result as unknown as Appointment
   }
 }

@@ -16,7 +16,8 @@ class _ProviderHistoryScreenState extends State<ProviderHistoryScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AppointmentsNotifier>().loadAll();
+      final n = context.read<AppointmentsNotifier>();
+      if (n.appointments.isEmpty && !n.loading) n.loadAll();
     });
   }
 
@@ -45,12 +46,25 @@ class _ProviderHistoryScreenState extends State<ProviderHistoryScreen> {
             return RefreshIndicator(
               onRefresh: notifier.loadAll,
               child: ListView(
-                children: const [
-                  SizedBox(height: 120),
-                  Center(
+                children: [
+                  const SizedBox(height: 100),
+                  const Icon(Icons.history_outlined,
+                      size: 48, color: AppTheme.textMuted),
+                  const SizedBox(height: 16),
+                  const Center(
                     child: Text(
                       'Nenhum agendamento no histórico.',
-                      style: TextStyle(color: AppTheme.textMuted),
+                      style: TextStyle(color: AppTheme.textMuted, fontSize: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      'Agendamentos concluídos ou cancelados aparecerão aqui.',
+                      style: TextStyle(
+                          color: AppTheme.textMuted.withAlpha(140),
+                          fontSize: 12),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ],

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../core/auth/auth_storage.dart';
+import '../providers/appointments_notifier.dart';
 
 class AppShell extends StatelessWidget {
   final Widget child;
@@ -36,25 +38,33 @@ class AppShell extends StatelessWidget {
     context.go(routes[index]);
   }
 
-  List<NavigationDestination> _destinations() {
+  List<NavigationDestination> _destinations(int pendingCount) {
     if (_isProvider) {
-      return const [
+      return [
         NavigationDestination(
-          icon: Icon(Icons.inbox_outlined),
-          selectedIcon: Icon(Icons.inbox),
+          icon: Badge(
+            label: Text('$pendingCount'),
+            isLabelVisible: pendingCount > 0,
+            child: const Icon(Icons.inbox_outlined),
+          ),
+          selectedIcon: Badge(
+            label: Text('$pendingCount'),
+            isLabelVisible: pendingCount > 0,
+            child: const Icon(Icons.inbox),
+          ),
           label: 'Pendentes',
         ),
-        NavigationDestination(
+        const NavigationDestination(
           icon: Icon(Icons.sync_outlined),
           selectedIcon: Icon(Icons.sync),
           label: 'Em andamento',
         ),
-        NavigationDestination(
+        const NavigationDestination(
           icon: Icon(Icons.history_outlined),
           selectedIcon: Icon(Icons.history),
           label: 'Histórico',
         ),
-        NavigationDestination(
+        const NavigationDestination(
           icon: Icon(Icons.design_services_outlined),
           selectedIcon: Icon(Icons.design_services),
           label: 'Serviços',
@@ -82,12 +92,16 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pendingCount = _isProvider
+        ? context.watch<AppointmentsNotifier>().pending.length
+        : 0;
+
     return Scaffold(
       body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex(context),
         onDestinationSelected: (i) => _onTap(context, i),
-        destinations: _destinations(),
+        destinations: _destinations(pendingCount),
       ),
     );
   }
