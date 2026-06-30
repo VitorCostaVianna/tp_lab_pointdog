@@ -99,12 +99,17 @@ A escolha de WebSocket para notificações em tempo real e RabbitMQ para process
     │  valida role PRESTADOR + transição PENDENTE→CONFIRMADO
     │
     ├──► [RabbitMQ] publica appointment.status_changed
+    │         │
+    │         └──► [Worker] loga a transição (processamento assíncrono)
     │
     └──► [WebSocket] envia appointment.status_changed
-              └──► clientId → AppointmentsNotifier do cliente
-                        │
-                        └──► AppointmentsListScreen atualiza status em tempo real
+              ├──► clientId   → AppointmentsNotifier do cliente
+              │         └──► AppointmentsListScreen atualiza status em tempo real
+              └──► providerId → AppointmentsNotifier do prestador
+                        └──► aba ativa/histórico reflete a transição
 ```
+
+> **Roteamento bidirecional do WebSocket.** Ambos os eventos (`appointment.created` e `appointment.status_changed`) são entregues a **todos** os participantes do agendamento. O método `WebSocketEventPublisher.publish()` extrai `clientId` e `providerId` do payload, deduplica-os em um `Set<string>` e envia a mensagem para cada `userId` conectado (`backend/src/shared/messaging/websocket.server.ts`, linhas 53–64). Assim, quando o prestador aceita uma solicitação, o cliente vê o status mudar para `CONFIRMADO` em tempo real e o prestador vê o item migrar da aba "Pendentes" para "Ativos" — sem `refresh` manual em nenhum dos dois apps.
 
 ### 2.3 Arquitetura do App Flutter — Role-Based Views
 
@@ -131,6 +136,20 @@ Seguindo Martin (2019), o app Flutter mantém a separação em camadas com depen
 | **Notifiers (Use Cases)** | `AppointmentsNotifier`, `AuthNotifier` | Lógica de estado, filtros, ações |
 | **Telas (Screens)** | LoginScreen, ProviderPendingScreen, etc. | Apresentação, sem lógica de negócio |
 | **Infraestrutura** | `AuthStorage`, `WebSocketService`, `AppHttpClient` | Persistência, rede, WebSocket |
+
+### 2.5 Ações do Prestador por Tela e Status
+
+O app do prestador é organizado em três abas (bottom nav), cada uma filtrando os agendamentos por status através dos getters do `AppointmentsNotifier` (`pending`, `active`, `history`). As **ações de ciclo de vida** ficam concentradas na tela de detalhe (`ProviderAppointmentDetailScreen`), que renderiza condicionalmente o conjunto de botões conforme o status do agendamento selecionado (método `_actionButtons`). Cada ação dispara um método do `AppointmentsNotifier`, que chama `PATCH /appointments/:id/status` com o novo status; o backend valida a transição na máquina de estados do `UpdateAppointmentStatusUseCase` antes de persistir e publicar o evento.
+
+| Tela (aba) | Status exibido | Filtro (`AppointmentsNotifier`) | Ação disponível | Método chamado | Status resultante | Transição validada no backend |
+|---|---|---|---|---|---|---|
+| `ProviderPendingScreen` | `PENDENTE` | `pending` | **Aceitar** | `confirm()` → `PATCH status=CONFIRMADO` | `CONFIRMADO` | `PENDENTE→CONFIRMADO` (somente `PRESTADOR`) |
+| `ProviderPendingScreen` | `PENDENTE` | `pending` | **Recusar** | `decline()` → `PATCH status=CANCELADO` | `CANCELADO` | `PENDENTE→CANCELADO` |
+| `ProviderActiveScreen` | `CONFIRMADO` | `active` | **Concluir** | `complete()` → `PATCH status=CONCLUIDO` | `CONCLUIDO` | `CONFIRMADO→CONCLUIDO` (somente `PRESTADOR`) |
+| `ProviderActiveScreen` | `CONFIRMADO` | `active` | **Cancelar** | `decline()` → `PATCH status=CANCELADO` | `CANCELADO` | `CONFIRMADO→CANCELADO` |
+| `ProviderHistoryScreen` | `CANCELADO` / `CONCLUIDO` | `history` | — (somente leitura) | — | — | estados terminais: `400 Agendamento já finalizado` |
+
+Os estados `CANCELADO` e `CONCLUIDO` são **terminais**: qualquer tentativa de novo `PATCH` sobre eles retorna `400 Agendamento já finalizado`, e a tela de detalhe não renderiza nenhum botão (`_actionButtons` retorna lista vazia). Toda ação bem-sucedida atualiza a lista localmente via `notifyListeners()` e exibe um `SnackBar` de confirmação, retornando à aba de origem.
 
 ---
 
@@ -182,14 +201,19 @@ if (eventType == 'appointment.created') {
 
 ### 3.4 MOM vs. WebSocket — Divisão de Responsabilidades
 
-O RabbitMQ e o WebSocket coexistem com **responsabilidades distintas**, seguindo a arquitetura de publicação/assinatura descrita por Hohpe e Woolf (2003):
+O RabbitMQ e o WebSocket coexistem como **dois canais distintos e complementares**, seguindo a arquitetura de publicação/assinatura descrita por Hohpe e Woolf (2003). A chave da implementação é que ambos são acionados a partir de **uma única chamada** `eventPublisher.publish()` no use case: o `CompositePublisher` recebe essa chamada e faz *fan-out* paralelo (`Promise.all`) para o `RabbitMQPublisher` **e** para o `WebSocketEventPublisher` (`backend/src/shared/messaging/composite.publisher.ts`). O use case de negócio não sabe que existem dois canais — ele apenas publica o evento de domínio uma vez.
 
-| Canal | Responsabilidade | Por que |
-|---|---|---|
-| RabbitMQ (MOM) | Processamento assíncrono de eventos de domínio | Durabilidade, desacoplamento, reprocessamento |
-| WebSocket | Entrega em tempo real ao app | Baixa latência, conexão persistente já existente |
+A partir desse ponto, os dois canais seguem caminhos independentes:
 
-O worker do RabbitMQ (`appointment.worker.ts`) simula notificações push (ex.: FCM para notificação fora do app). Em produção, este seria o componente responsável por enviar push notifications quando o usuário está com o app fechado — caso de uso que Richardson (2018) denomina "notificação assíncrona desacoplada".
+1. **Canal assíncrono (MOM):** o `RabbitMQPublisher` publica a mensagem no *Topic Exchange* `pointdog.events`. O broker enfileira de forma durável em `pointdog.notifications` e o **worker** (`appointment.worker.ts`), um processo separado, consome a mensagem e processa a notificação **fora do ciclo requisição-resposta** — a API já respondeu `201`/`200` ao cliente HTTP antes mesmo de o worker tocar na mensagem. Este é o canal de **notificação assíncrona ao prestador via evento/MOM**: desacoplado, durável e reprocessável.
+2. **Canal síncrono em tempo real (WebSocket):** o `WebSocketEventPublisher` empurra o mesmo evento, pela conexão persistente já aberta, para os apps de cliente e prestador conectados naquele instante.
+
+| Canal | Mecanismo | Responsabilidade | Entrega | Por que |
+|---|---|---|---|---|
+| RabbitMQ (MOM) | AMQP / Topic Exchange + fila durável + worker | Processamento assíncrono de eventos de domínio | Garantida (mesmo com app/worker offline) | Durabilidade, desacoplamento, reprocessamento |
+| WebSocket | Conexão `ws` persistente por `userId` | Entrega em tempo real ao app aberto | Best-effort (apenas conexões ativas) | Baixa latência, conexão já existente |
+
+O worker do RabbitMQ (`appointment.worker.ts`) simula notificações push (ex.: FCM para notificação fora do app). Em produção, este seria o componente responsável por enviar push notifications quando o usuário está com o app fechado — caso de uso que Richardson (2018) denomina "notificação assíncrona desacoplada". A distinção é importante para o critério avaliativo: o **WebSocket não substitui o MOM** — se o prestador estiver com o app fechado, a conexão WebSocket não existe e a notificação se perde; o MOM, por ser durável, garante que o evento seja processado e a push enviada assim que possível.
 
 ### 3.5 Implementação por Role-Based Views em Projeto Único
 
@@ -282,9 +306,9 @@ A adição das telas do prestador na Sprint 4 não exigiu modificações nas cam
 
 ### 5.5 REST
 
-Os endpoints seguem as convenções REST com recursos bem definidos (`/appointments`, `/pets`, `/services`), verbos HTTP semânticos (`GET`, `POST`, `PATCH`, `DELETE`) e códigos de status apropriados (`201 Created`, `200 OK`, `401 Unauthorized`, `403 Forbidden`).
+Os endpoints seguem o estilo arquitetural REST definido por Fielding (2000), com recursos bem definidos (`/appointments`, `/pets`, `/services`), verbos HTTP semânticos (`GET`, `POST`, `PATCH`, `DELETE`) e códigos de status apropriados (`201 Created`, `200 OK`, `401 Unauthorized`, `403 Forbidden`). A restrição de **interface uniforme** — um dos pilares da dissertação de Fielding (2000) — é respeitada ao identificar cada agendamento por uma URI estável (`/appointments/:id`) e manipulá-lo exclusivamente através de representações e métodos padronizados do protocolo HTTP.
 
-O uso de `PATCH /appointments/:id/status` — em vez de `PUT` — reflete corretamente a semântica de **atualização parcial** de recurso: apenas o campo `status` é modificado, sem necessidade de enviar o recurso completo. A distinção entre `PUT` (substituição total) e `PATCH` (modificação parcial) é fundamental para a corretude semântica de APIs REST.
+O uso de `PATCH /appointments/:id/status` — em vez de `PUT` — reflete corretamente a semântica de **atualização parcial** de recurso: apenas o campo `status` é modificado, sem necessidade de enviar o recurso completo. A distinção entre `PUT` (substituição total) e `PATCH` (modificação parcial) é fundamental para a corretude semântica de APIs REST e decorre diretamente dos critérios de uniformidade de interface estabelecidos por Fielding (2000).
 
 O controle de transições de status no `UpdateAppointmentStatusUseCase` (ex.: somente `PENDENTE→CONFIRMADO` é válida para o prestador; `CONFIRMADO→CONCLUIDO` não é acessível ao cliente) introduz lógica de máquina de estados sobre o recurso, mantendo a regra de negócio no use case e expondo apenas o endpoint genérico de atualização de status via REST.
 

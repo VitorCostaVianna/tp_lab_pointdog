@@ -89,10 +89,13 @@ tp_lab_pointdog/
       │
       ▼
 [Backend] valida role PRESTADOR → publica appointment.status_changed
-      └──► WebSocket → clientId
+      ├──► RabbitMQ → Worker (processamento assíncrono)
+      └──► WebSocket → clientId + providerId
                           │
-                          ▼
-                 [Cliente] status atualiza em tempo real
+              ┌───────────┴───────────┐
+              ▼                       ▼
+     [Cliente] status         [Prestador] item migra
+     atualiza em tempo real   Pendentes → Ativos
 ```
 
 ---
@@ -284,7 +287,7 @@ lib/
 |--------|------|-------------|
 | Sprint 1 | Backend REST + Clean Architecture | [`docs/sprint1/point_dog.pdf`](docs/sprint1/point_dog.pdf) · [`docs/sprint1/README.md`](docs/sprint1/README.md) |
 | Sprint 2 | Mensageria assíncrona (RabbitMQ/MOM) | [`docs/sprint2/sprint2-documentacao.md`](docs/sprint2/sprint2-documentacao.md) |
-| Sprint 3 | App Flutter do cliente | [`docs/sprint3/navigation-flow.md`](docs/sprint3/navigation-flow.md) |
+| Sprint 3 | App Flutter do cliente | [`docs/sprint3/sprint3-documentacao.md`](docs/sprint3/sprint3-documentacao.md) · [`docs/sprint3/navigation-flow.md`](docs/sprint3/navigation-flow.md) |
 | Sprint 4 | App prestador + integração final | [`docs/sprint4/sprint4-documentacao.md`](docs/sprint4/sprint4-documentacao.md) |
 
 ---
