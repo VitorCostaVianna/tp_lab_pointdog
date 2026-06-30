@@ -12,7 +12,7 @@ Plataforma de agendamento de serviços para pets (banho, tosa e similares), dese
 |--------|-------|
 | Sprint 2 — Backend + MOM | [`docs/sprint2/video_sprint2.mp4`](docs/sprint2/video_sprint2.mp4) |
 | Sprint 3 — App Cliente Flutter | [`docs/sprint3/video_sprint3.mp4`](docs/sprint3/video_sprint3.mp4) |
-| Sprint 4 — App Prestador + Fluxo Completo | [https://youtu.be/5ssTpoYluIE](https://youtu.be/5ssTpoYluIE) |
+| Sprint 4 — App Prestador + Fluxo Completo | [https://youtu.be/5ssTpoYluIE](https://youtu.be/5ssTpoYluIE) *(com áudio)* |
 
 ---
 
@@ -26,7 +26,7 @@ tp_lab_pointdog/
     ├── sprint1/      # Enunciado do projeto (PDF)
     ├── sprint2/      # Documentação MOM, Postman collection, PDF, vídeo
     ├── sprint3/      # Navigation flow, vídeo
-    └── sprint4/      # Relatório técnico final, vídeo (a adicionar)
+    └── sprint4/      # Relatório técnico final + vídeo de demonstração (com áudio)
 ```
 
 ---
@@ -105,8 +105,8 @@ tp_lab_pointdog/
 |---|---|---|
 | Node.js | 18+ | Runtime |
 | TypeScript | 6.x | Linguagem |
-| Express | 4.x | API REST |
-| Prisma | 6.x | ORM |
+| Express | 5.x | API REST |
+| Prisma | 7.x | ORM |
 | SQLite | — | Banco de dados |
 | JWT (`jsonwebtoken`) | — | Autenticação |
 | RabbitMQ (`amqplib`) | — | Message broker (MOM) |
@@ -128,7 +128,7 @@ tp_lab_pointdog/
 | `GET` | `/appointments` | Lista agendamentos do usuário autenticado | CLIENTE + PRESTADOR |
 | `GET` | `/appointments/:id` | Detalhe do agendamento | CLIENTE + PRESTADOR |
 | `POST` | `/appointments` | Criar agendamento | CLIENTE |
-| `PATCH` | `/appointments/:id/status` | Atualizar status | PRESTADOR |
+| `PATCH` | `/appointments/:id/status` | Atualizar status (PRESTADOR: confirmar/concluir/cancelar; CLIENTE: cancelar) | CLIENTE + PRESTADOR |
 
 #### Pets
 | Método | Rota | Descrição |
@@ -282,7 +282,7 @@ lib/
 
 | Sprint | Foco | Documentação |
 |--------|------|-------------|
-| Sprint 1 | Backend REST + Clean Architecture | [`docs/sprint1/projeto-pointdog-enunciado.pdf`](docs/sprint1/projeto-pointdog-enunciado.pdf) |
+| Sprint 1 | Backend REST + Clean Architecture | [`docs/sprint1/point_dog.pdf`](docs/sprint1/point_dog.pdf) · [`docs/sprint1/README.md`](docs/sprint1/README.md) |
 | Sprint 2 | Mensageria assíncrona (RabbitMQ/MOM) | [`docs/sprint2/sprint2-documentacao.md`](docs/sprint2/sprint2-documentacao.md) |
 | Sprint 3 | App Flutter do cliente | [`docs/sprint3/navigation-flow.md`](docs/sprint3/navigation-flow.md) |
 | Sprint 4 | App prestador + integração final | [`docs/sprint4/sprint4-documentacao.md`](docs/sprint4/sprint4-documentacao.md) |
@@ -291,6 +291,8 @@ lib/
 
 ## Testes
 
+A suíte do backend totaliza **55 testes automatizados** em **12 suítes** (Jest + ts-jest), todos passando. Executa sem Docker — sem RabbitMQ nem Postgres conteinerizado.
+
 ```bash
 # Backend — 55 testes (Jest)
 cd backend && npm test
@@ -298,3 +300,57 @@ cd backend && npm test
 # Flutter — análise estática
 cd client && flutter analyze
 ```
+
+### Mapa de testes (backend)
+
+| Módulo | Unitários | Integração | Total |
+|--------|----------:|-----------:|------:|
+| Appointments | 6 | 12 | 18 |
+| Users / Auth | 5 | 6 | 11 |
+| Pets | 2 | 8 | 10 |
+| Services | 0 | 9 | 9 |
+| Shared / Messaging | 6 | 0 | 6 |
+| App (health check) | 0 | 1 | 1 |
+| **Total** | **19** | **36** | **55** |
+
+**Testes unitários (19):** exercitam use cases e mensageria com mocks (`jest.Mocked<IRepository>`, `NullEventPublisher`), sem I/O.
+
+**Testes de integração (36):** Supertest sobre Express real → controller → use case → repositório Prisma → SQLite em arquivo (`test.db`). Cobrem contratos REST (status codes), RBAC e máquina de estados dos agendamentos.
+
+**Por que roda sem Docker:**
+- `NullEventPublisher` substitui o RabbitMQ nos testes (padrão *Null Object*)
+- SQLite em arquivo (`file:./test.db`) — sem servidor de banco externo
+- Sockets WebSocket simulados via injeção no mapa interno do publisher
+
+> Detalhamento completo na Seção 6 do [`docs/sprint4/sprint4-documentacao.md`](docs/sprint4/sprint4-documentacao.md).
+
+---
+
+## Princípios de Engenharia Aplicados
+
+### Clean Architecture (MARTIN, 2019)
+
+Separação em camadas com dependências apontando sempre para dentro:
+
+```
+Entidades (domain/)  ←  Use Cases (application/)  ←  Adaptadores (infrastructure/)  ←  Frameworks
+```
+
+- `domain/` não importa Prisma, Express, amqplib ou qualquer framework
+- Use cases dependem de interfaces (`IAppointmentRepository`, `IEventPublisher`), nunca de implementações
+- Isso permite trocar o banco ou o broker sem tocar na lógica de negócio
+
+### SOLID
+
+| Princípio | Como foi aplicado |
+|-----------|-------------------|
+| **SRP** | Controllers finos (try/catch + delegação); cada use case tem uma única responsabilidade |
+| **OCP** | `CompositePublisher` + `IEventPublisher`: adicionar FCM/e-mail não toca nos use cases |
+| **LSP** | `NullEventPublisher`, `RabbitMQPublisher`, `WebSocketEventPublisher` e `CompositePublisher` são intercambiáveis |
+| **ISP** | `IEventPublisher` tem um único método `publish()`; `IAppointmentRepository` expõe apenas o necessário |
+| **DIP** | Toda injeção por construtor; `createApp()` recebe o publisher com default `NullEventPublisher` |
+
+### DRY
+
+- `assertAppointmentAccess()` (`appointments/domain/appointment.access.ts`) — regra de autorização extraída para evitar duplicação entre `GetAppointmentUseCase` e `UpdateAppointmentStatusUseCase`
+- App Flutter: projeto único com views condicionadas pela role — providers, repositórios e modelos compartilhados entre cliente e prestador

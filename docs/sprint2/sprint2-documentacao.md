@@ -135,7 +135,7 @@ Foi usado o padrão **Topic Exchange**. O produtor publica mensagens com routing
 
 ### Integração com a Arquitetura
 
-Para não misturar a lógica de negócio com a infraestrutura de mensageria, foi criada a interface `IEventPublisher` na pasta `shared/messaging/`. Os use cases (`CreateAppointmentUseCase` e `UpdateAppointmentStatusUseCase`) dependem só dessa interface, sem saber se por baixo é RabbitMQ ou qualquer outra coisa. Em produção, o `RabbitMQPublisher` é injetado via construtor no `server.ts`. Nos testes, é usado um `NullEventPublisher` que não faz nada, o que permite rodar os 49 testes sem precisar do Docker rodando.
+Para não misturar a lógica de negócio com a infraestrutura de mensageria, foi criada a interface `IEventPublisher` na pasta `shared/messaging/`. Os use cases (`CreateAppointmentUseCase` e `UpdateAppointmentStatusUseCase`) dependem só dessa interface, sem saber se por baixo é RabbitMQ ou qualquer outra coisa. Em produção, o `RabbitMQPublisher` é injetado via construtor no `server.ts`. Nos testes, é usado um `NullEventPublisher` (padrão *Null Object*) que não faz nada, o que — somado ao uso de um banco SQLite em arquivo (`file:./test.db`) no lugar de um banco conteinerizado — permite rodar os 55 testes (19 unitários + 36 de integração) sem precisar do Docker rodando. O detalhamento completo da suíte (mapa por arquivo e por módulo) está na Seção 6 do relatório da Sprint 4.
 
 ### Desafios Encontrados
 

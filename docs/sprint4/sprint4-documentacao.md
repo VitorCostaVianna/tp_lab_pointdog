@@ -6,7 +6,7 @@
 **Aluno:** Vitor Costa Vianna  
 **Data:** Junho de 2026  
 
-**Video de demonstração:** [https://youtu.be/5ssTpoYluIE](https://youtu.be/5ssTpoYluIE)
+**Vídeo de demonstração (com áudio):** [https://youtu.be/5ssTpoYluIE](https://youtu.be/5ssTpoYluIE)
 
 ---
 
@@ -253,6 +253,22 @@ O backend segue os princípios de Clean Architecture (MARTIN, 2019):
 
 A **Regra de Dependência** é o invariante central: as dependências de código-fonte apontam sempre para dentro (em direção às entidades), nunca para fora. Um use case pode chamar uma interface de repositório, mas nunca uma implementação Prisma diretamente. Isso permite que a mesma lógica de negócio seja testada com repositórios em memória (como nos testes unitários) sem nenhuma modificação.
 
+**DRY aplicado no domínio:** a regra de autorização de acesso a agendamentos — "CLIENTE só acessa seus próprios agendamentos; PRESTADOR só acessa os seus" — aparecia duplicada em `GetAppointmentUseCase` e `UpdateAppointmentStatusUseCase`. Foi extraída para `appointments/domain/appointment.access.ts` como a função `assertAppointmentAccess(appointment, userId, role)`, eliminando a duplicação sem criar acoplamento adicional: a função pertence ao domínio (sem dependências externas) e ambos os use cases a chamam diretamente.
+
+```typescript
+// appointments/domain/appointment.access.ts
+export function assertAppointmentAccess(
+  appointment: Appointment,
+  requestingUserId: string,
+  requestingRole: 'CLIENTE' | 'PRESTADOR',
+): void {
+  if (requestingRole === 'CLIENTE' && appointment.clientId !== requestingUserId)
+    throw new AppError('Acesso negado', 403)
+  if (requestingRole === 'PRESTADOR' && appointment.providerId !== requestingUserId)
+    throw new AppError('Acesso negado', 403)
+}
+```
+
 ### 5.4 Clean Architecture no Flutter
 
 No app Flutter, a mesma separação é aplicada com adaptação ao ecossistema. Bailey (2023) detalha essa organização para projetos Flutter estruturados: models, repositories, state management e screens como camadas discretas com dependências unidirecionais:
@@ -274,7 +290,69 @@ O controle de transições de status no `UpdateAppointmentStatusUseCase` (ex.: s
 
 ---
 
-## 6. Estrutura do Repositório
+## 6. Estratégia de Testes
+
+A suíte de testes do backend é executada com **Jest + ts-jest** e totaliza **55 testes automatizados**, distribuídos em **12 suítes**, todos passando (`Test Suites: 12 passed, 12 total / Tests: 55 passed, 55 total`). Os testes combinam duas estratégias complementares: **testes unitários** dos use cases e da infraestrutura de mensageria (com mocks) e **testes de integração** dos controllers (HTTP real ponta a ponta).
+
+### 6.1 Mapa de Testes (arquivo por arquivo)
+
+| Arquivo | Tipo | Testes | O que cobre |
+|---|---|---:|---|
+| `src/app.test.ts` | Integração | 1 | Health check `GET /health` |
+| `modules/users/application/use-cases/register-user.usecase.test.ts` | Unitário | 2 | Registro: hash + e-mail duplicado (409) |
+| `modules/users/application/use-cases/login-user.usecase.test.ts` | Unitário | 3 | Login: token válido, e-mail inexistente (401), senha errada (401) |
+| `modules/users/presentation/user.controller.test.ts` | Integração | 6 | `POST /auth/register` e `POST /auth/login` (201/409/400/200/401) |
+| `modules/pets/application/create-pet.use-case.test.ts` | Unitário | 2 | Criação válida + tamanho inválido (400) |
+| `modules/pets/presentation/pet.controller.test.ts` | Integração | 8 | CRUD de pets + isolamento por dono (401/403/404) |
+| `modules/services/presentation/service.controller.test.ts` | Integração | 9 | CRUD de serviços + RBAC PRESTADOR + filtro por `providerId` |
+| `modules/appointments/application/create-appointment.use-case.test.ts` | Unitário | 3 | Cria + publica `appointment.created`; data passada; pet inexistente |
+| `modules/appointments/application/update-appointment-status.use-case.test.ts` | Unitário | 3 | Transição válida + evento; transição inválida; 404 |
+| `modules/appointments/presentation/appointment.controller.test.ts` | Integração | 12 | Ciclo de vida completo do agendamento + RBAC + máquina de estados |
+| `shared/messaging/composite.publisher.test.ts` | Unitário | 2 | Fan-out para N publishers + propagação de falha |
+| `shared/messaging/websocket.server.test.ts` | Unitário | 4 | Roteamento de eventos por `clientId`/`providerId` |
+| **Total** | | **55** | |
+
+### 6.2 Cobertura por Módulo
+
+| Módulo | Unitários | Integração | Total |
+|---|---:|---:|---:|
+| Users / Auth | 5 | 6 | 11 |
+| Pets | 2 | 8 | 10 |
+| Services | 0 | 9 | 9 |
+| Appointments | 6 | 12 | 18 |
+| Shared / Messaging | 6 | 0 | 6 |
+| App (health) | 0 | 1 | 1 |
+| **Total** | **19** | **36** | **55** |
+
+### 6.3 Estratégia: Unitário vs. Integração
+
+**Testes unitários (19)** — exercitam os use cases e a mensageria de forma isolada. As dependências externas são substituídas por *mocks* do Jest tipados (`jest.Mocked<IAppointmentRepository>`, `jest.fn()`), de modo que apenas a regra de negócio é avaliada, sem I/O. Exemplos: `CreateAppointmentUseCase` verifica que o evento `appointment.created` é publicado com o payload correto; `UpdateAppointmentStatusUseCase` valida a máquina de transições; `CompositePublisher` confirma o fan-out para múltiplos `IEventPublisher`. Essa abordagem só é possível porque os use cases dependem de **abstrações** (interfaces), não de implementações concretas — uma consequência direta da Regra de Dependência (Martin, 2019).
+
+**Testes de integração (36)** — exercitam os controllers através da pilha HTTP real, usando **Supertest** sobre a instância Express produzida por `createApp(testPrisma)`. Cada teste percorre o caminho completo: roteamento Express → middlewares de autenticação (`authenticate`) e autorização (`requireRole`) → controller → use case → repositório Prisma → banco SQLite. O helper `cleanDatabase()` (em `src/test-utils/db.ts`) é chamado em `beforeEach` para garantir isolamento entre casos. Esses testes validam não apenas a lógica, mas também os contratos REST (códigos de status `201/200/400/401/403/404/409`), o RBAC e o controle de transições de status do agendamento.
+
+### 6.4 Por que a Suíte Roda Sem Docker
+
+Um requisito de design da suíte foi permitir sua execução em qualquer máquina **sem subir contêineres**. Três decisões tornam isso possível:
+
+1. **`NullEventPublisher` no lugar do RabbitMQ.** A função `createApp()` recebe um `IEventPublisher` com valor padrão `new NullEventPublisher()` (`src/app.ts`, linha 13). Esse publisher implementa a mesma interface, mas seu `publish()` é um *no-op*. Como os use cases dependem apenas da interface `IEventPublisher` — e não do `RabbitMQPublisher` concreto —, eles publicam eventos normalmente nos testes, porém para um destino vazio. **Nenhum broker AMQP precisa estar de pé.** Essa é a aplicação prática do Princípio da Inversão de Dependência: trocar a implementação de infraestrutura sem tocar na regra de negócio (o padrão *Null Object* aplicado à mensageria).
+
+2. **SQLite em arquivo no lugar de um Postgres conteinerizado.** O banco de testes é um arquivo local (`file:./test.db`) acessado via adaptador `better-sqlite3`. O `globalSetup` do Jest (`src/test-utils/global-setup.ts`) roda `prisma migrate deploy` sobre esse arquivo antes da suíte, dispensando qualquer servidor de banco externo.
+
+3. **Sockets simulados nos testes de WebSocket.** Os testes de `WebSocketEventPublisher` injetam conexões falsas diretamente no mapa interno de clientes, em vez de abrir sockets reais — validando o roteamento de mensagens sem rede.
+
+### 6.5 Como Executar
+
+```bash
+cd backend
+npm install            # instala dependências (se ainda não instaladas)
+npm test               # jest --runInBand --forceExit
+```
+
+O `globalSetup` aplica as migrações no `test.db` automaticamente; não é necessário `docker-compose up` nem `npm run infra:up` para rodar os testes. A flag `--runInBand` força execução serial (os testes de integração compartilham o mesmo arquivo SQLite), e `--forceExit` encerra o processo após a conclusão.
+
+---
+
+## 7. Estrutura do Repositório
 
 ```
 tp_lab_pointdog/
@@ -308,7 +386,7 @@ tp_lab_pointdog/
 
 ---
 
-## 7. Instruções de Execução
+## 8. Instruções de Execução
 
 ### Pré-requisitos
 
@@ -363,7 +441,7 @@ Criar dois usuários via tela de registro:
 
 ---
 
-## 8. Referências Bibliográficas
+## 9. Referências Bibliográficas
 
 BAILEY, Thomas. **Flutter for beginners**. 3rd ed. Birmingham: Packt, 2023. ISBN 978-1-80323-765-8. (Referência principal para o desenvolvimento dos aplicativos móveis com Flutter 3.x e Dart 3.x, incluindo gerenciamento de estado com Provider e navegação com GoRouter.)
 
