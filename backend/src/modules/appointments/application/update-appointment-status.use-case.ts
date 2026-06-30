@@ -1,5 +1,6 @@
 import { Appointment } from '../domain/appointment.entity'
 import { IAppointmentRepository } from '../domain/appointment.repository'
+import { assertAppointmentAccess } from '../domain/appointment.access'
 import { IEventPublisher } from '../../../shared/messaging/event-publisher.interface'
 import { AppError } from '../../../shared/errors/app-error'
 
@@ -34,13 +35,7 @@ export class UpdateAppointmentStatusUseCase {
       throw new AppError('Agendamento não encontrado', 404)
     }
 
-    if (input.requestingRole === 'CLIENTE' && appointment.clientId !== input.requestingUserId) {
-      throw new AppError('Acesso negado', 403)
-    }
-
-    if (input.requestingRole === 'PRESTADOR' && appointment.providerId !== input.requestingUserId) {
-      throw new AppError('Acesso negado', 403)
-    }
+    assertAppointmentAccess(appointment, input.requestingUserId, input.requestingRole)
 
     const currentStatus = appointment.status
 

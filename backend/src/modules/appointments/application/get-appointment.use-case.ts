@@ -1,5 +1,6 @@
 import { Appointment } from '../domain/appointment.entity'
 import { IAppointmentRepository } from '../domain/appointment.repository'
+import { assertAppointmentAccess } from '../domain/appointment.access'
 import { AppError } from '../../../shared/errors/app-error'
 
 interface GetAppointmentInput {
@@ -18,13 +19,7 @@ export class GetAppointmentUseCase {
       throw new AppError('Agendamento não encontrado', 404)
     }
 
-    if (input.requestingRole === 'CLIENTE' && appointment.clientId !== input.requestingUserId) {
-      throw new AppError('Acesso negado', 403)
-    }
-
-    if (input.requestingRole === 'PRESTADOR' && appointment.providerId !== input.requestingUserId) {
-      throw new AppError('Acesso negado', 403)
-    }
+    assertAppointmentAccess(appointment, input.requestingUserId, input.requestingRole)
 
     return appointment
   }
